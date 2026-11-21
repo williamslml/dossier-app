@@ -1,3 +1,4 @@
+import { realpathSync } from 'node:fs'
 import { simpleGit } from 'simple-git'
 
 /**
@@ -26,10 +27,16 @@ export async function writeIncludeIf(
   gitdirPattern: string,
   profilePath: string,
 ): Promise<void> {
-  // Git exige "/" en el patrón de gitdir incluso en Windows: normalizar aquí
-  // (no responsabilidad del llamador) evita que un path.join con "\" rompa
-  // el match en silencio — lo descubrió el propio test R4 al fallar primero.
-  const normalizedPattern = gitdirPattern.split('\\').join('/')
+  // Git resuelve el gitdir por su ruta REAL (sin symlinks) al hacer el match
+  // de includeIf. Si la carpeta se alcanza por una ruta no canónica (p. ej.
+  // os.tmpdir() en macOS: /var/... es symlink de /private/var/...; algunos
+  // runners de Windows tienen el mismo problema con TEMP), el match falla en
+  // silencio — encontrado en CI (ver docs/lessons/README.md), reproducido
+  // localmente con una junction en gitconfig.test.ts. Resolver con realpath
+  // antes de normalizar, no solo la barra invertida de Windows.
+  const withoutTrailingSlash = gitdirPattern.replace(/[/\\]+$/, '')
+  const realPattern = `${realpathSync(withoutTrailingSlash)}/`
+  const normalizedPattern = realPattern.split('\\').join('/')
   const git = simpleGit()
   await git.raw([
     'config',

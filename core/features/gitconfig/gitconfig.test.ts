@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { simpleGit } from 'simple-git'
@@ -87,5 +87,42 @@ describe('includeIf por carpeta (R4)', () => {
     const contents = readFileSync(globalConfigPath, 'utf8')
     const firstIncludeIf = contents.indexOf('[includeIf')
     expect(firstIncludeIf).toBeGreaterThanOrEqual(0)
+  })
+})
+
+// Reproduce el fallo visto en CI (windows-latest y macos-latest de GitHub
+// Actions, no en esta máquina): `os.tmpdir()` en esos runners resuelve a
+// través de un symlink/junction (p. ej. macOS /var → /private/var). Git
+// resuelve el `gitdir` por su ruta REAL al hacer el match de `includeIf`;
+// si el patrón se construye con la ruta sin resolver, el match falla en
+// silencio. Se simula con una junction local — reproduce en cualquier SO.
+describe('includeIf con una ruta alcanzada por symlink/junction (CI real)', () => {
+  it('resuelve igual aunque el directorio se alcance por una ruta no canónica', async () => {
+    const realRoot = mkdtempSync(join(tmpdir(), 'sfp-symlink-real-'))
+    const linkRoot = join(tmpdir(), `sfp-symlink-link-${Math.random().toString(36).slice(2)}`)
+    symlinkSync(realRoot, linkRoot, 'junction')
+
+    const globalCfg = join(realRoot, 'global.gitconfig')
+    writeFileSync(globalCfg, '')
+
+    // dirA se referencia por la ruta SIMBÓLICA, igual que tmpdir() la
+    // devolvería en un runner afectado — no por su realpath.
+    const dirA = join(linkRoot, 'repo-a')
+    mkdirSync(dirA, { recursive: true })
+    await simpleGit(dirA).init()
+
+    const profileA = join(realRoot, 'profile-a.gitconfig')
+    await writeProfileConfig(profileA, {
+      'user.name': 'Cuenta A',
+      'user.email': 'a@example.invalid',
+    })
+    await writeIncludeIf(globalCfg, `${dirA}/`, profileA)
+
+    const git = simpleGit({ baseDir: dirA, unsafe: { allowUnsafeConfigPaths: true } }).env(
+      'GIT_CONFIG_GLOBAL',
+      globalCfg,
+    )
+    const value = (await git.raw(['config', '--get', 'user.email'])).trim()
+    expect(value).toBe('a@example.invalid')
   })
 })

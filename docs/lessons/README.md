@@ -58,6 +58,18 @@ Aplica cuando: pases una opción `cwd?: string` a una librería de terceros (ej.
 
 Ambos casos aparecieron construyendo `core/features/accounts/accounts.ts` (M2) — ninguno es un bug real, son el modo estricto haciendo su trabajo, pero el mensaje de error de TS no siempre deja obvio cuál de las dos reglas es la causa.
 
+---
+
+# `includeIf` necesita la ruta REAL (sin symlinks), no la que devuelve `os.tmpdir()`
+
+Aplica cuando: construyas un patrón de `includeIf "gitdir/i:<patrón>"` a partir de una ruta de la que no controlás si pasa por un symlink/junction — en particular, cualquier ruta bajo `os.tmpdir()`.
+
+Encontrado en CI (GitHub Actions): el test de `includeIf` (R4) pasaba en local y fallaba igual en `windows-latest` y `macos-latest`, pero no en `ubuntu-latest`. Causa: `os.tmpdir()` en esos runners resuelve a través de un symlink/junction (el caso clásico es macOS: `/var/...` es symlink de `/private/var/...`; algunos runners Windows tienen un problema análogo con `TEMP`). Git resuelve el `gitdir` por su ruta **canónica** (sin symlinks) al hacer el match de `includeIf` — un patrón construido con la ruta sin resolver no matchea, en silencio, sin error.
+
+Reproducible en **cualquier máquina**, sin depender de que el runner tenga esa capa de symlink: crear una carpeta real + una junction/symlink que apunte a ella (`fs.symlinkSync(real, link, 'junction')` en Windows no pide privilegios de administrador), y usar la ruta del symlink (no la real) para construir el patrón.
+
+Fix: `realpathSync()` sobre la ruta **antes** de normalizar las barras, dentro de `writeIncludeIf` (no responsabilidad del llamador) — mismo principio que ya se aplicó para `\` vs `/` en Windows: la función que escribe el `includeIf` es quien garantiza que el patrón coincide con lo que Git va a comparar, no cada sitio que la llama.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
