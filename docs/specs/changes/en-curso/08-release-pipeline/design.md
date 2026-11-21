@@ -30,48 +30,20 @@ Solo se agrega el bloque `publish` — el resto ya existía (probado en una sesi
 
 ## R2 — `.github/workflows/release.yml`
 
-```yaml
-name: Release
+Ver el archivo real para el YAML completo — acá, por qué terminó así (dos vueltas, las dos con un tag de prueba real empujado, nunca hipotético):
 
-# Fase 5 (docs/product.md §5): dispara con un tag v*, nunca con un push a
-# una rama. Deja la release en GitHub como borrador (default de
-# electron-builder, ver requirements.md R1.2) - publicarla es manual.
+**Primera vuelta:** `pnpm electron-builder --win --publish always` directo. Encontró dos problemas reales en los logs del run:
 
-on:
-  push:
-    tags: ['v*']
+1. `electron-builder` nombra/busca la release con la versión de `package.json`, no con el tag que disparó el workflow. Con `package.json` en `0.0.0` y un tag de prueba distinto, no encontró ninguna release existente y creó una **"untagged"** nueva — no el tag real.
+2. `--publish always` sube cada artefacto con su propio "publisher" en paralelo; cada uno decide por su cuenta si la release ya existe. Con el tag real coincidiendo (punto 1 corregido) esto *todavía* puede competir y crear la release dos veces — se vio literalmente dos líneas de `"creating GitHub release"` para el mismo tag en el mismo segundo.
 
-permissions:
-  contents: write # necesario para que electron-builder cree la release (borrador)
+**Solución final:**
 
-jobs:
-  release:
-    name: Build + publish (borrador)
-    runs-on: windows-latest
-    env:
-      RTK_DISABLED: '1'
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # electron-builder lo busca con este nombre
-    steps:
-      - uses: actions/checkout@v4
+- Un paso deriva `RELEASE_VERSION` de `GITHUB_REF_NAME` (saca la `v` inicial) y se lo pasa a `electron-builder` con `-c.extraMetadata.version=$RELEASE_VERSION`, sin tocar `package.json`.
+- `electron-builder` corre **sin** `--publish` (solo construye, deja los artefactos en `release/`).
+- Un paso aparte crea la release y sube los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, que no paraleliza su propia subida — nunca la carrera del punto 2.
 
-      - uses: pnpm/action-setup@v4
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '24.22'
-          cache: 'pnpm'
-
-      - run: pnpm install --frozen-lockfile
-
-      - run: pnpm typecheck
-      - run: pnpm lint
-      - run: pnpm test
-
-      - run: pnpm electron-vite build
-      - run: pnpm electron-builder --win --publish always
-```
-
-`--publish always` es lo que le dice a `electron-builder` que suba los artefactos a la release de GitHub (en vez de solo dejarlos en `release/` local, que es lo que hace `pnpm dist:win` sin ese flag) — se corre directo, no a través del script `dist:win` (que no pasa `--publish`), para no tener que variar el script según el contexto.
+Verificado localmente (sin publicar) que `-c.extraMetadata.version=X` deja los nombres de archivo y el contenido de `latest.yml` consistentes con `X`, antes de volver a probar el workflow completo contra GitHub real.
 
 ## R3 — `electron-updater` en `main`
 

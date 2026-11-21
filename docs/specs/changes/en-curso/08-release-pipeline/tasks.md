@@ -10,8 +10,13 @@
 ## 2. `.github/workflows/release.yml` (R2)
 
 - [x] Nuevo workflow, dispara con tags `v*`, `windows-latest` únicamente
-- [x] Pasos: typecheck/lint/test (mismo criterio que `ci.yml`) → `electron-vite build` → `electron-builder --win --publish always`
+- [x] Pasos: typecheck/lint/test (mismo criterio que `ci.yml`) → `electron-vite build` → `electron-builder --win` (build, sin publicar) → `gh release create` (ver el hallazgo abajo)
 - [x] `permissions: contents: write` explícito
+
+**Dos hallazgos reales, encontrados empujando un tag de prueba de verdad contra GitHub (ver requirements.md R2.6 para el detalle completo):**
+
+1. `electron-builder` nombra la release con la versión de `package.json`, no con el tag real — sin corregirlo, creó una release "untagged" en vez de usar el tag empujado. Fix: `-c.extraMetadata.version=$RELEASE_VERSION` (derivado de `GITHUB_REF_NAME`).
+2. `--publish always` de `electron-builder` paraleliza la subida por artefacto, y cada uno puede decidir crear la release — con dos tags de prueba distintos se vieron **dos** releases creadas para el mismo run. Fix: construir sin publicar, y crear la release + subir los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, atómico.
 
 ## 3. `electron-updater` (R3)
 

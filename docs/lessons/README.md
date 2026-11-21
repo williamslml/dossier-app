@@ -288,6 +288,16 @@ Aplica cuando: se agrega una dependencia nueva a un proyecto que corre como ESM 
 
 **Para la próxima vez:** agregar una dependencia nueva y usarla con `import { algo } from 'paquete'` no es suficiente verificación si el proyecto corre bajo ESM — hace falta levantar la app de verdad al menos una vez después de agregarla, antes de dar por buena la integración, sobre todo con paquetes que no son explícitamente "ESM-first". `tsc` en verde no prueba que el módulo cargue en tiempo de ejecución.
 
+---
+
+# `electron-builder --publish` usa la versión de `package.json` para nombrar la release, no el tag que disparó el workflow — y puede crearla dos veces por una carrera interna
+
+Aplica cuando: se arma un workflow de release con `electron-builder --publish` hacia GitHub Releases, disparado por un tag de git.
+
+Empujando un tag de prueba real (no una suposición) contra el repo real, aparecieron dos problemas en los logs del propio run: (1) con `package.json` en una versión distinta al tag empujado, `electron-builder` no encontró ninguna release que correspondiera al tag y creó una **"untagged"** nueva en su lugar — arma el nombre/versión de la release a partir de `package.json`, nunca lee el tag de git real; (2) `--publish always` sube cada artefacto con su propio "publisher" en paralelo, y cada uno decide por su cuenta si la release ya existe — se vieron literalmente dos líneas de log `"creating GitHub release"` para el mismo tag, en el mismo segundo: cada publisher pensó que tenía que crearla.
+
+**Para la próxima vez:** si hace falta que la release coincida exactamente con el tag que disparó el workflow, derivar la versión del tag (`${GITHUB_REF_NAME#v}`) y pasarla con `-c.extraMetadata.version=...`, nunca confiar en que `electron-builder` la lea del tag solo. Y para evitar la carrera de crear la release dos veces: no usar el `--publish` propio de `electron-builder` hacia GitHub — construir sin publicar (`electron-builder --win`, sin el flag) y crear la release + subir los artefactos en un solo paso atómico con `gh release create` (que no paraleliza su propia subida de archivos).
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

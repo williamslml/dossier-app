@@ -40,4 +40,34 @@ jobs:
 
       - run: pnpm electron-vite build
 
-      - run: pnpm electron-builder --win --publish always
+      # Hallazgo real (probado con un tag de prueba): electron-builder usa
+      # la versión de package.json para nombrar la release, no el tag que
+      # disparó el workflow — si no coinciden, crea una release "untagged"
+      # nueva en vez de encontrar/actualizar la que corresponde al tag. Se
+      # fuerza la versión acá a partir del tag real (`v1.2.3` → `1.2.3`),
+      # sin tocar el package.json del repo.
+      - name: Derivar la versión del tag
+        shell: bash
+        run: echo "RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      # Hallazgo real (mismo tag de prueba): `--publish always` de
+      # electron-builder sube cada artefacto con su propio "publisher" en
+      # paralelo, y cada uno decide por su cuenta si la release ya existe —
+      # con dos o más artefactos, una carrera hace que más de uno piense
+      # "no existe" al mismo tiempo y cree una release cada uno (visto en
+      # los logs reales: "creating GitHub release" aparece dos veces para
+      # el mismo tag). Más simple y confiable: construir sin publicar, y
+      # crear la release + subir los artefactos en un solo paso atómico con
+      # `gh release create` (nunca paraleliza su propia subida de archivos).
+      - run: pnpm electron-builder --win -c.extraMetadata.version=${{ env.RELEASE_VERSION }}
+
+      - name: Crear la release en borrador con los artefactos
+        shell: bash
+        run: |
+          gh release create "$GITHUB_REF_NAME" \
+            --draft \
+            --title "$GITHUB_REF_NAME" \
+            --notes "Build automático sin firmar — Fase 5 (08-release-pipeline)." \
+            "release/Dossier Setup ${RELEASE_VERSION}.exe" \
+            "release/Dossier Setup ${RELEASE_VERSION}.exe.blockmap" \
+            release/latest.yml
