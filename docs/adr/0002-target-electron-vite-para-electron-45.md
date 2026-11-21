@@ -30,7 +30,7 @@ renderer: {
 }
 ```
 
-Verificado en el spike R6 (`docs/specs/changes/en-curso/00-spike-base-y-gcm/`): compila sin error con Electron 45.4.1 real, `electron-vite` 6.0.0, `@preact/preset-vite` 2.10.6 (versiones exactas del catálogo, `docs/adr/0003-stack-fundacional-y-sin-backend.md`), y la app arranca y renderiza sin error (`R6-SPIKE-OK`, `exit=0`).
+Verificado en el spike R6 (`docs/specs/changes/archivados/00-spike-base-y-gcm/`): compila sin error con Electron 45.4.1 real, `electron-vite` 6.0.0, `@preact/preset-vite` 2.10.6 (versiones exactas del catálogo, `docs/adr/0003-stack-fundacional-y-sin-backend.md`), y la app arranca y renderiza sin error (`R6-SPIKE-OK`, `exit=0`).
 
 ## Alternatives
 
@@ -44,5 +44,5 @@ Verificado en el spike R6 (`docs/specs/changes/en-curso/00-spike-base-y-gcm/`): 
 ## References
 
 - `docs/adr/0003-stack-fundacional-y-sin-backend.md` (catálogo de librerías), `docs/product.md` §7.5 (decisión abierta)
-- `docs/specs/changes/en-curso/00-spike-base-y-gcm/` (R6: `design.md`, `requirements.md`, `tasks.md`)
+- `docs/specs/changes/archivados/00-spike-base-y-gcm/` (R6: `design.md`, `requirements.md`, `tasks.md`)
 - `docs/lessons/README.md` (hallazgos de implementación)

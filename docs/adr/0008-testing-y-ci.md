@@ -37,5 +37,5 @@ Ninguna evaluada aparte de Vitest/Playwright — son las herramientas ya elegida
 ## References
 
 - `.github/workflows/ci.yml`
-- `docs/specs/changes/en-curso/00-spike-base-y-gcm/` (R1–R6, de donde salió esta CI)
+- `docs/specs/changes/archivados/00-spike-base-y-gcm/` (R1–R6, de donde salió esta CI)
 - `CLAUDE.md` (aprobación humana obligatoria)

@@ -16,7 +16,7 @@ Dossier necesita que varias cuentas de GitHub/GitLab convivan en la misma máqui
 | Selección de cuenta por carpeta | **`includeIf` + `credential.<URL>.username`**                        | Git resuelve la cuenta por `cwd`; no hace falta un resolvedor en tiempo de ejecución ni un proceso extra. Patrón documentado por GCM y usado por proyectos maduros del ecosistema |
 | Identidad de commits            | **`includeIf` de Git**                                               | Evita carreras al cambiar `user.name`/`user.email` globales                                                                                                                       |
 
-**Confirmado en Windows real** (`docs/specs/changes/en-curso/00-spike-base-y-gcm/`): `approve`→`fill` devuelve el token correcto por `username` en el mismo host, sin red cuando hay una credencial cacheada que coincide. Si no hay coincidencia, GCM intenta un _probe_ de red para autodetectar el proveedor del host — ver `docs/lessons/README.md`, relevante para el diseño del futuro "Doctor".
+**Confirmado en Windows real** (`docs/specs/changes/archivados/00-spike-base-y-gcm/`): `approve`→`fill` devuelve el token correcto por `username` en el mismo host, sin red cuando hay una credencial cacheada que coincide. Si no hay coincidencia, GCM intenta un _probe_ de red para autodetectar el proveedor del host — ver `docs/lessons/README.md`, relevante para el diseño del futuro "Doctor".
 
 ### Arquitectura de procesos
 
@@ -103,7 +103,7 @@ Ver ADR 0003 (catálogo de librerías y soluciones existentes revisadas) — SSH
 
 ## References
 
-- `docs/specs/changes/en-curso/00-spike-base-y-gcm/` (spike que validó esto)
+- `docs/specs/changes/archivados/00-spike-base-y-gcm/` (spike que validó esto)
 - `core/features/git-credential/`, `core/features/gitconfig/`, `core/features/rules/`
 - `docs/lessons/README.md` (hallazgos de GCM/`includeIf`)
 - ADR 0003 (stack), ADR 0005 (marca — `dataDir`/marcadores)
