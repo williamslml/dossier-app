@@ -1,7 +1,7 @@
 {
   "schema": 2,
   "tool": "project-setup",
-  "skill_version": "1.6.1",
+  "skill_version": "1.14.0",
   "installed_at": "2026-11-20",
   "source_methodology": {
     "variant": "sin-orquestador",
@@ -46,7 +46,7 @@
       "type": "create",
       "path": "CLAUDE.md",
       "markers": false,
-      "sha256": "9fc1773a59601ae022994ed047e0f3a34f3eca39e2b2de221931a22bc771c1a3",
+      "sha256": "1adfa9b660782645c514515eb32b90c57876baf2e03174ffbe4ea0f178d03fb6",
       "risk": "bajo",
       "reversible": true,
       "note": "Punto de entrada autocontenido para Claude Code: flujo trivial/no-trivial, ubicaciones de specs/ADR/runbooks/lecciones, aprobaciones obligatorias, modelo único por ahora, contexto mínimo"
@@ -76,7 +76,7 @@
       "type": "create",
       "path": "docs/lessons/README.md",
       "markers": false,
-      "sha256": "ef6624099153ca1dc72b681059e9a9e300405410ab27355ebe71525fdba13496",
+      "sha256": "96efe3db7e339e455cfbb662652efb06bb948ac14a9dcd065b043a7ccb77e19a",
       "risk": "bajo",
       "reversible": true,
       "note": "Registro manual de lecciones, formato 'Aplica cuando: …', regla de promoción"

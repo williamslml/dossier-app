@@ -44,6 +44,19 @@ Producción, operaciones destructivas, secretos, pagos, infraestructura crítica
 
 Ninguno formal por ahora (proyecto en solitario, sin orquestador). Se puede definir alguno más adelante si hace falta separar explícitamente "implementar" de "revisar".
 
+## Git
+
+- Repo: `github.com/williamslml/dossier-app` (privado). Rama por defecto: `main`.
+- Convención de commits: Conventional Commits `tipo(ámbito): descripción` (`fix(core): …`, `feat: …`, `docs: …`, `test: …`); commits atómicos que explican el porqué, no solo el qué.
+- Mensajes legibles para quien no vio el código: el asunto dice el efecto, no la implementación; en cambios no triviales, cuerpo con el problema, qué cambia y cómo probarlo. Lo mismo para la descripción de una PR (Por qué · Qué cambia · Qué NO cambia · Cómo probarlo · Riesgos) y para el commit de merge (nunca el texto por defecto).
+- Ramas: cortas desde `main`, nombre `tipo/efecto-en-pocas-palabras` en minúsculas y guiones, sin tildes (p. ej. `fix/includeif-realpath-windows`). Merge: squash si la PR es una sola unidad lógica.
+- El agente propone commits; en este proyecto (solo, sin equipo) los hace directamente al completar una verificación en verde, salvo que el cambio toque una señal de alto riesgo (sección "Aprobación humana obligatoria" de arriba). Push a `main`, force-push (`--force-with-lease` únicamente), rebase de ramas compartidas o borrar ramas: con aprobación humana.
+- Remotes: nunca contraseñas ni tokens dentro de su dirección (HTTPS + credential helper vía GCM, nunca embebidos). Agregar, cambiar o borrar remotes: con aprobación.
+
+## Idioma y claridad
+
+Responder y escribir (docs, comentarios, commits, PRs) en **español**, en lenguaje claro: que lo entienda alguien que no conoce el código. Primero qué pasa y para qué sirve; la jerga, explicada o evitada; sin referencias que nadie va a seguir (números de sección, líneas, hashes, "ver X") salvo cuando apunten a algo navegable (una ruta de archivo, un ADR). Español neutro: tuteo, **nunca voseo** ("vos", "tenés", "podés", "hacé"…) y sin regionalismos ("che", "dale", "acá", "ahorita"…).
+
 ## Skills/herramientas y precedencia
 
 Instaladas vía `integrations.sh` (a nivel proyecto, excepto RTK que es global): `test-driven-development`, `systematic-debugging`, `verification-before-completion`, `receiving-code-review`, `finishing-a-development-branch` (subconjunto de Superpowers), Serena (MCP, `.mcp.json`), archify, frontend-design, RTK (hook global, ya existente). **SFP manda en specs, planes, tareas, sub-agentes, worktrees, revisión, gates y memoria del proyecto** — ninguna de estas herramientas decide eso. Cada una actúa solo con su disparador:

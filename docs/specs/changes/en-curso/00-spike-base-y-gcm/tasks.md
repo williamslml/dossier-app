@@ -14,8 +14,8 @@ Checklist, unidad de trabajo de este change. Estado compartido entre sesiones (s
 
 - [x] `.github/workflows/ci.yml`: matriz Windows + macOS + Linux, pasos lint/typecheck/test, sin paso de build de instalador
 - [x] El test de GCM (R3) usa `describe.skipIf(!isWindows)`: se salta solo en macOS/Linux, no se fuerza a pasar (diseño confirmado en el código, `git-credential.spike.test.ts`)
-- [ ] Confirmar en una corrida real de GitHub Actions (bloqueado: no hay git/remoto en este proyecto todavía — tu decisión; pendiente hasta que se inicie git)
-- [ ] Probar con un PR de ruta mal escrita que la CI lo detecta en un sistema no-Windows (depende de lo anterior)
+- [x] Confirmar en una corrida real de GitHub Actions — **hecho**: repo privado creado (`github.com/williamslml/dossier-app`), CI corrió en los 3 sistemas. Primera corrida (44870359780) **falló** en Windows y macOS: encontró un bug real (ver abajo), no un problema de la CI
+- [x] "Detecta rutas mal escritas en un sistema no-Windows" — la CI ya lo demostró por sí sola, con un caso más interesante que el previsto: encontró que `includeIf` no resolvía la ruta real en macOS (symlink) ni en Windows (alias 8.3), corregido con `realpathSync.native` (ver `lessons/README.md`); confirmado en verde en los 3 sistemas en la corrida 44871350217
 
 ## 3. Helper de protocolo `git credential` (R3, diseño en `design.md`)
 
