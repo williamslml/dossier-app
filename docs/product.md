@@ -27,27 +27,27 @@
 
 No se entrega una versión reducida: el producto se construye entero. El orden de implementación lo fijan las fases (§5).
 
-- [x] Vincular cuentas — mecanismo de credenciales confirmado en el spike (ver `docs/specs/changes/archivados/00-spike-base-y-gcm/`); el flujo de vinculación (GitLab PAT, GitHub Device Flow) es Fase 2, ya hecho (`docs/specs/changes/archivados/02-proveedores-github-gitlab/`); falta la pantalla que lo dispare (Fase 3)
+- [x] Vincular cuentas — diálogos reales de GitHub (Device Flow) y GitLab (PAT) desde la pantalla principal (`docs/specs/changes/archivados/04-vincular-cuenta-github-gitlab/`)
 - [x] Guardar y borrar tokens en GCM, con verificación `approve` → `fill` — confirmado contra GCM real
 - [ ] GCM detectado y usable, con estado claro cuando falte
 - [ ] Cambio de cuenta activa con un clic desde la bandeja
 - [x] Identidad y cuenta HTTPS por carpeta con `includeIf` — confirmado
 - [ ] Etiquetas editables
-- [x] Pin de carpetas (manual) — modelo de reglas (`core/features/rules/`) listo; falta UI
+- [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
 - [ ] Quick Clone con Auto-Pin
 - [ ] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado
 - [ ] Host de GitLab configurable desde la UI
-- [ ] Arranque con Windows
+- [x] Arranque con Windows — interruptor en Ajustes
 - [ ] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux)
 - [ ] Instalador NSIS + auto-actualización desde GitHub Releases
 - [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
-- [ ] Tema (claro/oscuro/según el sistema) — pedido del usuario, Fase 3 parte 2, change `05-ajustes`
-- [ ] Reglas por carpeta accesibles desde Ajustes, no solo desde su propia pantalla (decisión revisada en `05-ajustes`: asignar rutas locales a una cuenta con `includeIf`, para que cada proyecto tome su identidad sin cambiar de cuenta a mano)
-- [ ] Alcance al cambiar de cuenta activa: un ajuste para elegir si además de la credencial HTTPS (GCM) se actualizan `user.name`/`user.email` y la clave de firma de commits (GPG o SSH con `gpg.format = ssh` — **nunca** para transporte remoto, ver §1) de la carpeta activa
-- [ ] Carpeta base por defecto para Quick Clone, y si la cuenta activa queda aislada dentro del `.git` del repo clonado
-- [ ] Atajo de teclado global para abrir la ventana
-- [ ] Mantenimiento de credenciales: limpiar entradas huérfanas o conflictivas que GCM tiene guardadas (relacionado con Doctor, de arriba)
-- [ ] El menú del clic derecho en la bandeja ofrece las mismas opciones que Ajustes (no solo Abrir/Salir), para cambiarlas sin abrir la ventana
+- [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`
+- [x] ~~Reglas por carpeta accesibles desde Ajustes~~ — decisión revisada de nuevo al usar la app: terminó siendo al revés, un diálogo por cuenta desde la pantalla principal (`AccountFoldersDialog`), no una sección en Ajustes
+- [x] Alcance al cambiar de cuenta activa: interruptor en Ajustes para aplicar también la clave de firma de la cuenta (si tiene una asignada) — sin UI todavía para asignar esa clave a una cuenta
+- [x] ~~Carpeta base por defecto para Quick Clone, y si la cuenta activa queda aislada~~ — decisión revisada: Quick Clone va a pedir carpeta y cuenta en el momento de clonar, no desde una preferencia global; se sacó de `Settings`
+- [x] Atajo de teclado global para abrir/ocultar la ventana (`Ctrl+Shift+D`)
+- [x] Mantenimiento de credenciales: limpia entradas huérfanas que GCM tiene guardadas (solo las que Dossier reconoce como propias)
+- [x] El menú del clic derecho en la bandeja ofrece Tema/Inicio con Windows, igual que Ajustes, sincronizado en los dos sentidos
 - [ ] Sincronizar cuentas vinculadas antes de tener Dossier: (a) al vincular, detectar si GCM ya tiene una credencial guardada para ese host y ofrecerla en vez de pedir un token nuevo; (b) importar el token ya cacheado por `gh`/`glab` CLI (si están instalados y logueados), verificado contra la API igual que un token nuevo. Nunca un escaneo genérico de todo Windows Credential Manager (mismo límite ya aceptado para la limpieza de credenciales, `05-ajustes`). **Lo de (a) — que solo funcionaría bien con una sola credencial guardada por host — es una suposición sin probar en vivo todavía**, no un límite confirmado: antes de descartar o acotar esta idea hay que probarlo de verdad contra una instalación real de GCM (con varios enfoques si el primero no funciona), no asumirlo de memoria. Pensado como su propio change chico, después de que la tanda actual de ramas pendientes (vincular cuenta, rediseño, Ajustes) se revise y se mergee — no se agrega encima de la que ya está lista para revisión
 
 ### Después
@@ -65,9 +65,9 @@ Contenido todavía no implementado; se usa como punto de partida de `proposal.md
 | Módulo     | Contenido                                                                                              | Lenguaje            | Estado                                                                                                                                 |
 | ---------- | ------------------------------------------------------------------------------------------------------ | ------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
 | `core`     | cuentas, reglas, generación de `gitconfig`, proveedores, orquestación de `git credential`, cliente Git | TypeScript          | **Fase 1 — hecho** (`core/`)                                                                                                           |
-| `main`     | bandeja, IPC, Device Flow, clonado, updater, verificación de GCM                                       | TypeScript/Electron | Fase 3 — parte 1 hecha (bandeja/ventana, notificaciones, `getState`/`selectAccount`/`hideWindow`); falta Device Flow, clonado, updater |
-| `preload`  | `contextBridge` con API mínima                                                                         | TypeScript/Electron | Fase 3 — parte 1 hecha (`src/preload/index.ts`)                                                                                        |
-| `renderer` | interfaz Preact                                                                                        | TypeScript          | Fase 3 — parte 1 hecha (pantalla principal); faltan vincular cuenta y Ajustes                                                          |
+| `main`     | bandeja, IPC, Device Flow, clonado, updater, verificación de GCM                                       | TypeScript/Electron | **Fase 3 — hecho** (bandeja/ventana, Device Flow/PAT, motor de identidad, Ajustes, guardia de identidad); falta clonado, updater (Fase 4/5) |
+| `preload`  | `contextBridge` con API mínima                                                                         | TypeScript/Electron | **Fase 3 — hecho** (`src/preload/index.ts`)                                                                                            |
+| `renderer` | interfaz Preact                                                                                        | TypeScript          | **Fase 3 — hecho** (pantalla principal, vincular cuenta, Ajustes)                                                                      |
 
 ### 3.2 Proveedores (Fase 2)
 
@@ -165,4 +165,4 @@ TypeScript estricto y la CI en tres sistemas se configuraron en la Fase 0, antes
 
 ## 8. Siguiente paso
 
-Completado hasta aquí: Fase 0 (spike), Fase 1 (`core`), Fase 2 (proveedores GitHub/GitLab) y la parte 1 de Fase 3 (ventana, pantalla principal, notificaciones) — ver `docs/specs/changes/archivados/`. Siguiente: diálogos de vincular cuenta (GitHub/GitLab) dentro de Fase 3 — abrir su change siguiendo el flujo de `CLAUDE.md` (spec antes de código, es no trivial por tocar auth/credenciales).
+Completado hasta aquí: Fase 0 (spike), Fase 1 (`core`), Fase 2 (proveedores GitHub/GitLab) y Fase 3 completa (ventana, pantalla principal, notificaciones, vincular cuenta, motor de identidad, Ajustes con guardia de identidad por carpeta) — ver `docs/specs/changes/archivados/`. Siguiente: Fase 4 (Quick Clone) o Fase 5 (instalador firmado) — a definir, ninguna tiene spec abierta todavía.
