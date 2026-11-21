@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "description": "Gestor de identidades Git/GitHub/GitLab por carpeta, vía Git Credential Manager e includeIf.",
+  "license": "MIT",
   "packageManager": "pnpm@12.21.0",
   "engines": {
     "node": ">=24.22"
