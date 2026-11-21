@@ -81,4 +81,4 @@ Sin señales de alto riesgo nuevas (no toca credenciales/OAuth; reutiliza lo ya 
 
 - [x] Los criterios (S1–S6) verificados y anotados acá
 - [x] Lecciones nuevas anotadas en `docs/lessons/README.md`
-- [ ] Mover a `../archivados/` — pendiente de tu confirmación
+- [x] Mover a `../archivados/` — confirmado por el usuario
