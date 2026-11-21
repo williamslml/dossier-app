@@ -6,6 +6,13 @@ directories:
   output: release
 files:
   - out/**/*
+  # Hallazgo real (probado con un build empaquetado de verdad, no en modo
+  # dev): sin esto, resources/ no entra al .asar — src/main/index.ts resuelve
+  # el ícono con una ruta relativa a import.meta.url que espera encontrarla
+  # ahí. Sin el archivo, electron-menubar cae a su propio ícono por default,
+  # y esa rama (lib/index.mjs) usa `__dirname`, que no existe en ESM real —
+  # revienta el arranque entero de la bandeja, no solo el ícono.
+  - resources/**/*
 electronFuses:
   runAsNode: false
   enableNodeOptionsEnvironmentVariable: false
