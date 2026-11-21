@@ -1,0 +1,554 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Dossier</title>
+    <style>
+      * {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+        font-family:
+          'Geist',
+          -apple-system,
+          BlinkMacSystemFont,
+          'Inter',
+          'Segoe UI',
+          Roboto,
+          sans-serif;
+        -webkit-font-smoothing: antialiased;
+      }
+
+      body {
+        background-color: #fafafa;
+        background-image: radial-gradient(#e5e5e5 1px, transparent 1px);
+        background-size: 20px 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 100vh;
+        margin: 0;
+      }
+
+      svg {
+        display: inline-block;
+        vertical-align: middle;
+        flex-shrink: 0;
+      }
+
+      /* Ventana compacta estilo Geist / Vercel Light */
+      .app-window {
+        width: 390px;
+        height: 620px;
+        background-color: #ffffff;
+        color: #171717;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        user-select: none;
+        border: 1px solid #eaeaea;
+        border-radius: 12px;
+        box-shadow:
+          0 12px 32px rgba(0, 0, 0, 0.06),
+          0 2px 6px rgba(0, 0, 0, 0.03);
+        position: relative;
+      }
+
+      /* Barra superior */
+      .title-bar {
+        height: 44px;
+        background-color: #fafafa;
+        border-bottom: 1px solid #eaeaea;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        -webkit-app-region: drag;
+      }
+      .title-bar-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 12.5px;
+        font-weight: 600;
+        color: #171717;
+        letter-spacing: -0.01em;
+      }
+      .title-bar-right {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        -webkit-app-region: no-drag;
+      }
+      .btn-header-clone {
+        font-size: 11px;
+        background-color: #ffffff;
+        color: #171717;
+        border: 1px solid #e5e5e5;
+        padding: 3px 9px;
+        border-radius: 6px;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .btn-header-clone:hover {
+        background-color: #f4f4f5;
+        border-color: #171717;
+      }
+      .vault-badge {
+        font-size: 10.5px;
+        background-color: #ffffff;
+        color: #525252;
+        border: 1px solid #e5e5e5;
+        padding: 3px 8px;
+        border-radius: 9999px;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+      }
+
+      /* Contenedor principal */
+      .container {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        padding: 16px;
+        overflow-y: auto;
+        background-color: #ffffff;
+      }
+
+      /* Banner de cuenta activa */
+      .active-banner {
+        background-color: #fafafa;
+        border: 1px solid #eaeaea;
+        border-radius: 8px;
+        padding: 12px 14px;
+        margin-bottom: 14px;
+      }
+      .active-banner small {
+        display: block;
+        font-size: 11px;
+        color: #666666;
+        margin-bottom: 6px;
+        font-weight: 500;
+      }
+      .active-banner-main {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+      }
+      .active-user-wrap {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        font-size: 13.5px;
+        font-weight: 600;
+        color: #171717;
+        letter-spacing: -0.01em;
+      }
+      .pulse-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: #0070f3;
+        box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.14);
+      }
+      .custom-label-pill {
+        font-size: 11px;
+        background-color: #ffffff;
+        color: #444444;
+        padding: 2px 8px;
+        border-radius: 9999px;
+        border: 1px solid #e5e5e5;
+        display: inline-flex;
+        align-items: center;
+        gap: 5px;
+        font-weight: 500;
+      }
+
+      /* Lista de tarjetas de cuentas */
+      .account-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .account-card {
+        background-color: #ffffff;
+        border: 1px solid #eaeaea;
+        border-radius: 8px;
+        padding: 10px 12px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        transition: all 0.15s ease;
+      }
+      .account-card:hover {
+        background-color: #fafafa;
+        border-color: #d4d4d4;
+      }
+      .account-card.selected {
+        border-color: #171717;
+        background-color: #fafafa;
+        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+      }
+      .account-left {
+        display: flex;
+        align-items: center;
+        gap: 11px;
+        min-width: 0;
+      }
+      .avatar {
+        width: 34px;
+        height: 34px;
+        border-radius: 8px;
+        background-color: #f4f4f5;
+        border: 1px solid #e4e4e7;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #171717;
+        flex-shrink: 0;
+      }
+      .account-card.selected .avatar {
+        background-color: #171717;
+        border-color: #171717;
+        color: #ffffff;
+      }
+      .account-info {
+        min-width: 0;
+      }
+      .account-top h4 {
+        font-size: 13px;
+        color: #171717;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        font-weight: 600;
+        letter-spacing: -0.01em;
+        margin-bottom: 4px;
+      }
+      .account-meta {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-size: 11px;
+        color: #666666;
+      }
+      .tag-custom {
+        background-color: #f4f4f5;
+        color: #52525b;
+        padding: 2px 7px;
+        border-radius: 5px;
+        font-weight: 500;
+        display: inline-flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .icon-action-btn {
+        background: transparent;
+        border: none;
+        color: #888888;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 5px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.15s ease;
+      }
+      .icon-action-btn:hover {
+        color: #171717;
+        background-color: #f4f4f5;
+      }
+      .icon-action-btn.delete:hover {
+        color: #e00;
+        background-color: #fff0f0;
+      }
+
+      .account-actions {
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        flex-shrink: 0;
+      }
+      .status-badge {
+        font-size: 11px;
+        padding: 3px 10px;
+        border-radius: 6px;
+        font-weight: 500;
+        transition: all 0.15s ease;
+      }
+      .selected .status-badge {
+        background-color: #171717;
+        color: #ffffff;
+      }
+      .account-card:not(.selected) .status-badge {
+        background-color: #ffffff;
+        border: 1px solid #eaeaea;
+        color: #666666;
+      }
+      .account-card:not(.selected):hover .status-badge {
+        border-color: #d4d4d4;
+        color: #171717;
+      }
+
+      /* Botones de acción principales */
+      .add-buttons {
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        margin-top: 14px;
+      }
+      .btn-row-split {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 7px;
+      }
+      .btn-add {
+        width: 100%;
+        height: 35px;
+        padding: 0 11px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+        transition: all 0.15s ease;
+      }
+      .btn-add:disabled {
+        opacity: 0.45;
+        cursor: not-allowed;
+      }
+      .btn-gh {
+        background-color: #171717;
+        color: #ffffff;
+        border: 1px solid #171717;
+      }
+      .btn-gh:hover:not(:disabled) {
+        background-color: #383838;
+        border-color: #383838;
+      }
+      .btn-gl {
+        background-color: #ffffff;
+        color: #171717;
+        border: 1px solid #eaeaea;
+      }
+      .btn-gl:hover:not(:disabled) {
+        background-color: #fafafa;
+        border-color: #171717;
+      }
+      .btn-clone-full {
+        background-color: #fafafa;
+        color: #171717;
+        border: 1px solid #e5e5e5;
+      }
+      .btn-clone-full:hover:not(:disabled) {
+        background-color: #f4f4f5;
+        border-color: #171717;
+      }
+
+      /* Notificación discreta de estado */
+      .toast-feedback {
+        margin-top: auto;
+        padding-top: 12px;
+      }
+      .toast-box {
+        background-color: #fafafa;
+        border: 1px solid #eaeaea;
+        border-radius: 6px;
+        padding: 8px 11px;
+        font-size: 11px;
+        color: #525252;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        line-height: 1.4;
+      }
+      .toast-box svg {
+        color: #0070f3;
+      }
+
+      /* Pie de aplicación */
+      .app-footer {
+        height: 30px;
+        background-color: #fafafa;
+        border-top: 1px solid #eaeaea;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0 16px;
+        font-size: 10.5px;
+        color: #737373;
+      }
+
+      /* Estado vacío (S5.3 — nuevo, el prototipo no lo contemplaba) */
+      .empty-state {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+        color: #888888;
+        font-size: 12px;
+        text-align: center;
+        padding: 24px;
+      }
+    </style>
+  </head>
+  <body>
+    <!-- Iconos SVG (congelados, docs/adr/0007-frontend.md) -->
+    <svg style="display: none">
+      <symbol
+        id="icon-git-branch"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="6" x2="6" y1="3" y2="15" />
+        <circle cx="18" cy="6" r="3" />
+        <circle cx="6" cy="18" r="3" />
+        <path d="M18 9a9 9 0 0 1-9 9" />
+      </symbol>
+      <symbol
+        id="icon-shield-lock"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </symbol>
+      <symbol
+        id="icon-tag"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M12.586 2.586A2 2 0 0 0 11.172 2H4a2 2 0 0 0-2 2v7.172a2 2 0 0 0 .586 1.414l8.704 8.704a2.426 2.426 0 0 0 3.42 0l6.58-6.58a2.426 2.426 0 0 0 0-3.42z"
+        />
+        <circle cx="7.5" cy="7.5" r=".5" fill="currentColor" />
+      </symbol>
+      <symbol
+        id="icon-edit"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z" />
+      </symbol>
+      <symbol
+        id="icon-x"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M18 6 6 18" />
+        <path d="m6 6 12 12" />
+      </symbol>
+      <symbol
+        id="icon-trash"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M3 6h18" />
+        <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" />
+        <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2" />
+      </symbol>
+      <symbol id="icon-github" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.53 1.032 1.53 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.02 10.02 0 0 0 22 12.017C22 6.484 17.522 2 12 2Z"
+        />
+      </symbol>
+      <symbol id="icon-gitlab" viewBox="0 0 24 24" fill="currentColor">
+        <path
+          d="m22.65 14.39-1.43-4.41L18.39 1.3a.62.62 0 0 0-1.18 0l-2.83 8.68H9.62L6.79 1.3a.62.62 0 0 0-1.18 0L2.78 9.98 1.35 14.39a.89.89 0 0 0 .32 1L12 22.89l10.33-7.5a.89.89 0 0 0 .32-1Z"
+        />
+      </symbol>
+      <symbol
+        id="icon-check"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2.2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <polyline points="20 6 9 17 4 12" />
+      </symbol>
+      <symbol
+        id="icon-external"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6" />
+        <polyline points="15 3 21 3 21 9" />
+        <line x1="10" x2="21" y1="14" y2="3" />
+      </symbol>
+      <symbol
+        id="icon-download-cloud"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
+        <path d="M12 12v9" />
+        <path d="m8 17 4 4 4-4" />
+      </symbol>
+      <symbol
+        id="icon-pin"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <line x1="12" x2="12" y1="17" y2="22" />
+        <path
+          d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
+        />
+      </symbol>
+    </svg>
+
+    <div id="app"></div>
+    <script type="module" src="./src/main.tsx"></script>
+  </body>
+</html>

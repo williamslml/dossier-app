@@ -95,6 +95,34 @@ Verificación en vivo (Device Flow real, cuenta real `williamslml`, Fase 2): ya 
 
 **Verificación de que nada se rompió:** `git ls-remote` contra un repo privado real devolvió los refs correctamente sin pedir credenciales — la credencial de `github.com` del usuario sigue operativa después del test, se haya sobrescrito o no.
 
+---
+
+# El renderer nunca debe importar `core` directamente — solo a través de `preload`
+
+Aplica cuando: un componente del renderer necesite un tipo (`Account`, etc.) que `core` también usa.
+
+Importar `brand` (un valor real, no solo un tipo) desde `core/index.ts` en `App.tsx` arrastró al bundle del renderer todo el grafo de `core` — incluidos `simple-git`, `conf`, `child_process`, `fs` — porque `core/index.ts` es un único barril con todo. Vite lo detectó y los externalizó ("Module externalized for browser compatibility"), pero en producción esos módulos Node no existen en un renderer con `sandbox: true`/`nodeIntegration: false` (ADR 0006): hubiera crasheado en runtime, no en build. El bundle pasó de 156KB/222 módulos a 29.8KB/30 al sacar esa única línea.
+
+Incluso los `import type { Account } from 'core/index.ts'` (que sí se borran en compilación con `verbatimModuleSyntax`) son un acoplamiento conceptual de más: el renderer no debería saber que `core` existe. Fix: `preload/index.ts` reexporta los tipos que el renderer necesita (`export type { Account }`); el renderer los importa de ahí, nunca de `core` directo — ni siquiera como tipo. Cualquier dato que el renderer necesite de `core` (como `brand.displayName`) viaja por IPC dentro del `getState()` normal, no por un import aparte.
+
+# `new URL(...).pathname` rompe en Windows para rutas de archivo reales; usar `fileURLToPath`
+
+Aplica cuando: conviertas una `file://` URL (p. ej. `import.meta.url` + una ruta relativa) a una ruta de sistema de archivos real, en Windows.
+
+`new URL('../preload/index.mjs', import.meta.url).pathname` da `/C:/Users/.../index.mjs` — con una barra inicial que Windows no entiende como ruta válida. Lo que sí funciona (y es exactamente para esto) es `fileURLToPath()` de `node:url`. Si lo que se necesita es la URL en sí (como el `index` de `electron-menubar`, que acepta un `file://`), no hay que convertir nada: `new URL(relativo, import.meta.url).href` ya es la URL correcta, porque `import.meta.url` ya es `file://`.
+
+# `electron-menubar` sin `icon` explícito cae a un `__dirname` que no existe en ESM
+
+Aplica cuando: uses `electron-menubar` (u otra librería con una ruta de icono "por defecto") en un proyecto `"type": "module"` (ESM).
+
+Sin pasar la opción `icon`, `electron-menubar` intenta `dir + 'IconTemplate.png'`; si no existe, cae a un `path.join(__dirname, ...)` interno de la propia librería — pero `__dirname` no existe en módulos ESM, y el main de este proyecto se compila como ESM (`"type": "module"`). Resultado: `ReferenceError: __dirname is not defined`, no un error de icono faltante. Fix: pasar siempre un `icon` explícito cuya ruta exista de verdad (evita por completo esa rama de código de la librería). Se generó un ícono placeholder mínimo (16×16, PNG construido a mano con `zlib`, sin librerías de imágenes) hasta que exista el ícono real de marca (ADR 0005, paso manual pendiente).
+
+# `electron-menubar`: `after-create-window` ya ocurre con la URL cargada; para enganchar `did-finish-load` hay que usar `before-load`
+
+Aplica cuando: quieras detectar si el renderer cargó bien, usando los eventos de `electron-menubar`.
+
+El evento `after-create-window` de la librería se dispara **después** de que `loadURL` ya corrió — enganchar `did-finish-load` ahí llega tarde casi siempre (la carga de un archivo local es casi instantánea). Hay que escuchar en `before-load` (ventana ya creada, `loadURL` todavía no se llamó) para no perderse el evento. Además, `electron-menubar` crea la `BrowserWindow` de forma perezosa, solo al mostrarla (`showWindow()`) — para una verificación headless automatizada hay que forzar `showWindow()`, no alcanza con esperar a que la bandeja esté lista.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

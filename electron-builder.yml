@@ -1,0 +1,17 @@
+# S4.4 (docs/adr/0006-seguridad.md): fuses de producción, dejados correctos
+# desde ya aunque el build de instalador real sea Fase 5. appId (ADR 0005).
+appId: com.dossier.app
+productName: Dossier
+directories:
+  output: release
+files:
+  - out/**/*
+electronFuses:
+  runAsNode: false
+  enableNodeOptionsEnvironmentVariable: false
+  enableNodeCliInspectArguments: false
+  enableEmbeddedAsarIntegrityValidation: true
+  onlyLoadAppFromAsar: true
+win:
+  target: nsis
+  icon: resources/app-icon.ico

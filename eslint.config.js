@@ -9,7 +9,8 @@ export default tseslint.config(
     ignores: [
       '**/node_modules/**',
       '**/dist/**',
-      'spike/electron-target/**',
+      'out/**',
+      'release/**',
       '.claude/**',
       '.agents/**',
       '.sfp/**',
@@ -25,8 +26,7 @@ export default tseslint.config(
     // Solo el código del producto: rutas siempre con path/os, nunca "\"
     // escritos a mano. No aplica a los propios configs (pueden
     // necesitar backslashes en literales/regex legítimos, como esta regla).
-    files: ['core/**/*.ts', 'spike/**/*.ts'],
-    ignores: ['spike/electron-target/**'],
+    files: ['core/**/*.ts', 'spike/**/*.ts', 'src/**/*.ts', 'src/**/*.tsx'],
     rules: {
       'no-restricted-syntax': [
         'error',
