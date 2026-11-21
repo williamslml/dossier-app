@@ -26,6 +26,7 @@
     "vitest": "^2.1.8"
   },
   "dependencies": {
+    "@octokit/auth-oauth-device": "8.0.5",
     "conf": "^16.0.0",
     "simple-git": "^3.36.0"
   }

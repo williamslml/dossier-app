@@ -17,3 +17,8 @@ export { createAccountsStore } from './features/accounts/accounts.ts'
 
 export type { Rule, RulesStore } from './features/rules/rules.ts'
 export { createRulesStore, FolderOverlapError } from './features/rules/rules.ts'
+
+export type { GithubVerification, LinkedAccount } from './features/providers/github/github.ts'
+export { deriveNoreplyEmail, linkGithub } from './features/providers/github/github.ts'
+
+export { linkGitlab } from './features/providers/gitlab/gitlab.ts'
