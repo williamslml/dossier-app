@@ -15,3 +15,11 @@ electronFuses:
 win:
   target: nsis
   icon: resources/app-icon.ico
+# R1 (08-release-pipeline): necesario para `electron-builder --publish` y
+# para que `electron-updater` sepa contra qué repo chequear. `releaseType`
+# no se fija a mano: el default de electron-builder ya es "draft" (nunca
+# una release publicada sola), que es justo lo que pide proposal.md.
+publish:
+  provider: github
+  owner: williamslml
+  repo: dossier-app
