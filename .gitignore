@@ -1,0 +1,22 @@
+node_modules/
+dist/
+dist-electron/
+out/
+*.local
+.env
+.env.*
+!.env.example
+
+# Artefactos de electron-builder
+release/
+
+# Logs
+*.log
+pnpm-debug.log*
+
+# Skills de terceros instaladas por integrations.sh (18MB vendored): no van
+# al historial. skills-lock.json sí se commitea — con eso y
+# `integrations.sh --apply` se reproducen exactas. settings.local.json es
+# config personal de Claude Code (cada dev la suya).
+.claude/skills/
+.claude/settings.local.json

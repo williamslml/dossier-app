@@ -1,0 +1,38 @@
+name: CI
+
+# Blueprint §10: matriz Windows + macOS + Linux, SOLO tests (detecta rutas mal
+# escritas aunque solo se publique para Windows). No genera artefactos de
+# instalación para ningún sistema — eso es la Fase 5 (release.yml, solo Windows).
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    name: lint + typecheck + test (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-latest, macos-latest, ubuntu-latest]
+    env:
+      RTK_DISABLED: '1' # comandos de evidencia de SFP, sin comprimir (CLAUDE.md)
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test

@@ -1,0 +1,12 @@
+node_modules
+dist
+dist-electron
+release
+pnpm-lock.yaml
+
+# Terceros instalados por integrations.sh — no son nuestro código
+.claude
+.agents
+.sfp
+
+spike/electron-target

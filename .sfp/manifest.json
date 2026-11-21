@@ -1,0 +1,115 @@
+{
+  "schema": 2,
+  "tool": "project-setup",
+  "skill_version": "1.6.1",
+  "installed_at": "2026-11-20",
+  "source_methodology": {
+    "variant": "sin-orquestador",
+    "methodology": "SFP",
+    "version_or_hash": "skill repo commit 3ac8493 (C:\\Users\\2510TK0506260\\.claude\\skills\\spec-first-protocol)"
+  },
+  "classification": {
+    "project_state": "nuevo",
+    "intrusion": "n/a",
+    "orchestration": "none"
+  },
+  "spec_layer": {
+    "tool": "documentos-libres",
+    "verified_at": "2026-11-20",
+    "source": "respuesta del usuario (entrevista, bloque 5, pregunta 17)",
+    "mapping": {
+      "changes": "docs/specs/changes",
+      "proposal": "proposal.md",
+      "requirements": "requirements.md",
+      "design": "design.md",
+      "tasks": "tasks.md",
+      "archive": "docs/specs/changes/archivados",
+      "current_specs": "n/a"
+    }
+  },
+  "runtimes": [
+    "claude-code"
+  ],
+  "backup": {
+    "type": "ninguno",
+    "ref": "n/a (ningún archivo existente fue modificado o fusionado)"
+  },
+  "structure": {
+    "profile": "fullstack",
+    "stage": "1",
+    "rationale": "project-structure.md §3: situación 'nuevo/vacío' (discover.sh: features_max=0, desplegables_estimados=0) → decide entrevista + evidencia. Tipo 'app de escritorio' sin mapeo directo (paso 1); electron-vite impone 3 procesos (main/preload/renderer) + core Node puro separado, sin red entre ellos pero un solo deployable → regla de desempate D3 (§3.1: front+back sin meta-framework, un solo desplegable) → Fullstack. Etapa 1: ninguna condición de Etapa 2 se cumple (sin features). Ver ADR 0001 para la organización interna (feature-first en renderer/ y core/, no por capa).",
+    "verify_command": "pnpm typecheck && pnpm lint && pnpm test (ya existen; perfil feature-first por ADR 0001)"
+  },
+  "actions": [
+    {
+      "id": 1,
+      "type": "create",
+      "path": "CLAUDE.md",
+      "markers": false,
+      "sha256": "9fc1773a59601ae022994ed047e0f3a34f3eca39e2b2de221931a22bc771c1a3",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Punto de entrada autocontenido para Claude Code: flujo trivial/no-trivial, ubicaciones de specs/ADR/runbooks/lecciones, aprobaciones obligatorias, modelo único por ahora, contexto mínimo"
+    },
+    {
+      "id": 2,
+      "type": "create",
+      "path": "docs/adr/README.md",
+      "markers": false,
+      "sha256": "6a9dcf81e918cb0ed5a4949d6fd6ee59187652c68692d565743c3fdf6438d42d",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Carpeta de ADR + formato (Status/Context/Decision/Alternatives/Consequences/References)"
+    },
+    {
+      "id": 3,
+      "type": "create",
+      "path": "docs/runbooks/README.md",
+      "markers": false,
+      "sha256": "19f95f8112157a58f4053e5e8827a30feaf1e3d5c75e3603c73e1bc322940102",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Carpeta de runbooks + candidatos específicos del producto (release, rollback, GCM no disponible, migración de appId/dataDir)"
+    },
+    {
+      "id": 4,
+      "type": "create",
+      "path": "docs/lessons/README.md",
+      "markers": false,
+      "sha256": "ef6624099153ca1dc72b681059e9a9e300405410ab27355ebe71525fdba13496",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Registro manual de lecciones, formato 'Aplica cuando: …', regla de promoción"
+    },
+    {
+      "id": 5,
+      "type": "create",
+      "path": "docs/specs/README.md",
+      "markers": false,
+      "sha256": "79df8de6584bda28cd071320569a798315663134f5d823bfaaa01409d0ac1354",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Capa de especificación por cambio (documentos libres): estructura, flujo por sesión sin orquestador, frontera con ADR"
+    },
+    {
+      "id": 6,
+      "type": "create",
+      "path": "docs/specs/changes/en-curso/",
+      "markers": false,
+      "sha256": "",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Carpeta vacía para specs activas (se puebla al primer change)"
+    },
+    {
+      "id": 7,
+      "type": "create",
+      "path": "docs/specs/changes/archivados/",
+      "markers": false,
+      "sha256": "",
+      "risk": "bajo",
+      "reversible": true,
+      "note": "Carpeta vacía para specs cerradas"
+    }
+  ]
+}

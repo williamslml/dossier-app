@@ -1,0 +1,95 @@
+{
+  "tool": "spec-first-protocol/integrations.sh",
+  "records": [
+    {
+      "component": "archify",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "archify",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y archify",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "frontend-design",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "frontend-design",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y frontend-design",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "superpowers",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "test-driven-development",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y test-driven-development",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "superpowers",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "systematic-debugging",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y systematic-debugging",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "superpowers",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "verification-before-completion",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y verification-before-completion",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "superpowers",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "receiving-code-review",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y receiving-code-review",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "superpowers",
+      "scope": "project",
+      "kind": "skill",
+      "auto": true,
+      "target": "finishing-a-development-branch",
+      "undo": "npx -y skills@1.9.0 remove --agent claude-code -y finishing-a-development-branch",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "serena",
+      "scope": "project",
+      "kind": "mcp",
+      "auto": true,
+      "target": ".mcp.json#serena",
+      "undo": "uvx -p 3.13 --from serena-agent==2.1.0 serena start-mcp-server --context claude-code --project-from-cwd --add-mode no-memories",
+      "date": "2026-11-20"
+    },
+    {
+      "component": "rtk",
+      "scope": "global",
+      "kind": "toml",
+      "auto": false,
+      "target": "C:/Users/2510TK0506260/AppData/Roaming/rtk/config.toml#hooks.exclude_commands",
+      "undo": "PYTHONUTF8=1 python C:/Users/2510TK0506260/.claude/skills/spec-first-protocol/scripts/integrations_helpers.py toml-list remove C:/Users/2510TK0506260/AppData/Roaming/rtk/config.toml hooks exclude_commands ^(ba)?sh .*spec-first-protocol ^(powershell|pwsh).*spec-first-protocol ^python[0-9.]* .*manifest_tool\\.py",
+      "date": "2026-11-20"
+    }
+  ],
+  "skill_version": "1.6.1",
+  "selection": {
+    "only": "",
+    "skip": "",
+    "scope": "project",
+    "rtk_scope": "global",
+    "force_frontend": false
+  },
+  "updated": "2026-11-20"
+}
