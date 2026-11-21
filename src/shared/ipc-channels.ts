@@ -24,4 +24,5 @@ export const IPC = {
   listIdentityConflicts: 'listIdentityConflicts',
   identityConflictsUpdated: 'identityConflictsUpdated',
   resolveIdentityConflict: 'resolveIdentityConflict',
+  cloneRepo: 'cloneRepo',
 } as const

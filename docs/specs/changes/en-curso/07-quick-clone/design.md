@@ -59,7 +59,7 @@ export async function cloneRepo(
 ## Q5 — Orden de las operaciones en el handler de `main`
 
 ```ts
-ipcMain.handle(IPC.cloneRepo, async (event, payload: unknown) => {
+ipcMain.handle(IPC.cloneRepo, async (_event, payload: unknown) => {
   const { url, destPath, accountId } = cloneRepoSchema.parse(payload)
   const account = accountsStore.list().find((a) => a.id === accountId)
   if (!account) throw new Error('Cuenta no encontrada')
@@ -69,19 +69,16 @@ ipcMain.handle(IPC.cloneRepo, async (event, payload: unknown) => {
   // Q5.1: el chequeo de solapamiento corre ANTES del clone — reusa la misma
   // normalización que ya tiene rulesStore internamente, llamando a un
   // chequeo de "solo lectura" antes de tocar disco/red. Decisión de diseño
-  // al implementar: exportar una función `wouldOverlap(rules, path)` desde
+  // al implementar: exportar una función `findOverlap(rules, path)` desde
   // `core/features/rules` (hoy esa lógica vive privada dentro de `pin`), en
   // vez de intentar/revertir — más simple que deshacer un clone a medias.
   const overlap = findOverlap(rulesStore.list(), destPath) // nueva función, ver tasks.md
   if (overlap) throw new FolderOverlapError(destPath, overlap.path)
 
-  event.sender.send(IPC.cloneProgress, { phase: 'clonando' })
-  try {
-    await cloneRepo(url, destPath, account)
-  } catch (err) {
-    event.sender.send(IPC.cloneProgress, { phase: 'error', message: String(err) })
-    throw err
-  }
+  // Sin evento de progreso aparte (ver requirements.md Q6.1): una sola
+  // llamada esperada de punta a punta, el `invoke` ya le dice al renderer
+  // cuándo empieza/termina/falla.
+  await cloneRepo(url, destPath, account)
 
   // Q4: mismo camino que pinFolder (src/main/index.ts), no uno paralelo.
   await writeAccountProfile(dataDir, account)
@@ -89,20 +86,18 @@ ipcMain.handle(IPC.cloneRepo, async (event, payload: unknown) => {
   const block = await renderIncludeIfBlock(`${destPath}/`, getProfilePath(dataDir, account.id))
   updateRegion(globalConfigPath, (region) => `${region}\n${block}`.trim())
 
-  event.sender.send(IPC.cloneProgress, { phase: 'listo' })
   return rule
 })
 ```
 
-## Q6 — Canales IPC
+## Q6 — Canal IPC
 
 ```ts
 // src/shared/ipc-channels.ts
 cloneRepo: 'cloneRepo',
-cloneProgress: 'cloneProgress',
 ```
 
-`preload`: `cloneRepo(data): Promise<Rule>` (invoke) + `onCloneProgress(callback): () => void` (evento, mismo patrón que `onGithubVerification`).
+`preload`: `cloneRepo(data): Promise<Rule>` (invoke) — sin evento aparte, ver la decisión de Q6.1 en requirements.md.
 
 ## Q3 — `CloneDialog.tsx` (renderer)
 

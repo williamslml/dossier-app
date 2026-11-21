@@ -1,10 +1,14 @@
+import { useStore } from '@nanostores/preact'
 import { useState } from 'preact/hooks'
+import { $principal } from './store.ts'
+import { CloneDialog } from './CloneDialog.tsx'
 import { GithubLinkDialog } from './GithubLinkDialog.tsx'
 import { GitlabLinkDialog } from './GitlabLinkDialog.tsx'
 
-type OpenDialog = 'github' | 'gitlab' | null
+type OpenDialog = 'github' | 'gitlab' | 'clone' | null
 
 export function AddButtons() {
+  const { accounts } = useStore($principal)
   const [open, setOpen] = useState<OpenDialog>(null)
   const close = () => setOpen(null)
 
@@ -24,7 +28,7 @@ export function AddButtons() {
           GitLab
         </button>
       </div>
-      <button class="btn-add btn-clone-full" disabled title="Próximamente">
+      <button class="btn-add btn-clone-full" onClick={() => setOpen('clone')}>
         <svg width="14" height="14">
           <use href="#icon-download-cloud" />
         </svg>
@@ -33,6 +37,7 @@ export function AddButtons() {
 
       {open === 'github' && <GithubLinkDialog onClose={close} onLinked={close} />}
       {open === 'gitlab' && <GitlabLinkDialog onClose={close} onLinked={close} />}
+      {open === 'clone' && <CloneDialog accounts={accounts} onClose={close} onCloned={close} />}
     </div>
   )
 }

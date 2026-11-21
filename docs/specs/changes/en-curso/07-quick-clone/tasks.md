@@ -4,37 +4,39 @@
 
 ## 1. `core/features/clone/` — validación + clone (Q1, Q2) — TDD
 
-- [ ] RED/GREEN: `validateCloneUrl` — tabla de casos válidos/inválidos (Q2.1/Q2.2)
-- [ ] RED/GREEN: `cloneRepo` — test de integración real (sin mockear Git): clona un repo público real de GitHub a un directorio temporal, confirma el remoto resultante; un segundo caso con una URL/host inválido confirma que rechaza con el error de Git real
-- [ ] Wire en `core/index.ts`
+- [x] RED/GREEN: `validateCloneUrl` — tabla de casos válidos/inválidos (Q2.1/Q2.2)
+- [x] RED/GREEN: `cloneRepo` — test de integración real (sin mockear Git). **Decisión tomada al implementar:** contra un repo bare *local* (no github.com) — prueba la mecánica real del clone (incluido el `-c credential.*`) sin depender de la red, mismo criterio que el resto de la suite (nunca una API remota real en los tests automatizados; sí se probó contra github.com real en la verificación en vivo, sección 6)
+- [x] Wire en `core/index.ts`
 
 ## 2. `core/features/rules/` — chequeo de solapamiento reusable (Q5)
 
-- [ ] RED/GREEN: extraer la lógica de solapamiento que hoy vive privada dentro de `pin()` a una función exportada (`findOverlap` o nombre similar) — `pin()` pasa a usarla internamente, ningún test existente de `rules.test.ts` debería cambiar de comportamiento
-- [ ] Wire en `core/index.ts`
+- [x] RED/GREEN: `findOverlap` extraída de `pin()` (antes vivía privada) — `pin()` la usa internamente, los 13 tests existentes de `rules.test.ts` siguen pasando sin cambios
+- [x] Wire en `core/index.ts`
 
 ## 3. IPC y preload (Q6)
 
-- [ ] Canales `IPC.cloneRepo`/`IPC.cloneProgress` en `src/shared/ipc-channels.ts`
-- [ ] Handler `IPC.cloneRepo` en `main` (orden exacto: cuenta → validar URL → chequear solapamiento → clonar → Auto-Pin, ver design.md)
-- [ ] `cloneRepo`/`onCloneProgress` en `src/preload/index.ts`
+- [x] Canal `IPC.cloneRepo` en `src/shared/ipc-channels.ts`
+- [x] Handler `IPC.cloneRepo` en `main` (orden exacto: cuenta → validar URL → chequear solapamiento → clonar → Auto-Pin, ver design.md)
+- [x] `cloneRepo` en `src/preload/index.ts`
+
+**Hallazgo al implementar, corregido:** se armó primero un evento `cloneProgress` siguiendo el patrón de `githubVerification`, pero quedó sin ningún consumidor — a diferencia del Device Flow, acá todo el trabajo ocurre dentro de una sola llamada esperada de punta a punta, el `invoke` ya le dice al renderer cuándo empieza/termina/falla. Se sacó el evento (canal, handler, preload) en vez de dejarlo sin usar — ver requirements.md Q6.1.
 
 ## 4. `CloneDialog.tsx` (renderer) (Q3)
 
-- [ ] Componente nuevo, mismo patrón visual que `GithubLinkDialog.tsx`
-- [ ] Filtro de cuentas por host de la URL (Q3.2/Q3.3)
-- [ ] Estados clonando/listo/error (Q3.4/Q3.5/Q3.6), reusa `showToast`
-- [ ] `store.ts`: función que invoca `cloneRepo` + se suscribe a `onCloneProgress`
+- [x] Componente nuevo, mismo patrón visual que `GithubLinkDialog.tsx`
+- [x] Filtro de cuentas por host de la URL (Q3.2/Q3.3)
+- [x] Estados clonando/listo/error (Q3.4/Q3.5/Q3.6), reusa `showToast`
+- [x] `store.ts`: función `cloneRepo` que invoca el IPC y recarga `$pins`
 
 ## 5. Habilitar el botón (Q7)
 
-- [ ] `AddButtons.tsx`: saca `disabled`/el tooltip "Próximamente", conecta `CloneDialog`
+- [x] `AddButtons.tsx`: saca `disabled`/el tooltip "Próximamente", conecta `CloneDialog`
 
 ## 6. Verificación
 
-- [ ] `pnpm typecheck && pnpm lint && pnpm test && pnpm build` en verde
-- [ ] Verificación en vivo (CDP/DOM): diálogo abre, campos en el orden correcto, filtro de cuentas por host funciona
-- [ ] Verificación en vivo con un repo real: clonar un repositorio público real hacia una carpeta temporal vacía, confirmar que termina clonado y fijado a la cuenta elegida; intentar clonar hacia una carpeta ya fijada y confirmar que se rechaza antes de tocar la red
+- [x] `pnpm typecheck && pnpm lint && pnpm test && pnpm build` en verde (118 tests)
+- [x] Verificación en vivo (CDP/DOM): diálogo abre, campos en el orden correcto; filtro de cuentas por host confirmado con tres casos (host con una cuenta, sin ninguna cuenta, cambio de URL)
+- [x] Verificación en vivo con un repo real (`https://github.com/octocat/Hello-World.git`, a través de todo el camino de IPC, no solo `core`): clonado real hacia una carpeta temporal vacía, confirmado con `git remote -v`/`git log` reales; quedó fijado a la cuenta elegida (`enforced: false`). Clonar hacia una subcarpeta de esa misma carpeta se rechazó con `FolderOverlapError` antes de tocar la red; una URL `ssh://` se rechazó antes de llegar a Git. Carpeta y regla limpiadas después.
 
 ## 7. Cierre del change
 

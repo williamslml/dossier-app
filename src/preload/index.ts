@@ -57,6 +57,7 @@ export interface DossierApi {
   /** Devuelve una función para des-suscribirse. */
   onIdentityConflictsUpdated(callback: (conflicts: ConflictRecord[]) => void): () => void
   resolveIdentityConflict(data: { repoPath: string; action: IdentityConflictAction }): Promise<void>
+  cloneRepo(data: { url: string; destPath: string; accountId: string }): Promise<Rule>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -100,6 +101,8 @@ const api: DossierApi = {
   },
   resolveIdentityConflict: (data: { repoPath: string; action: IdentityConflictAction }) =>
     ipcRenderer.invoke(IPC.resolveIdentityConflict, data),
+  cloneRepo: (data: { url: string; destPath: string; accountId: string }) =>
+    ipcRenderer.invoke(IPC.cloneRepo, data),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

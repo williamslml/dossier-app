@@ -9,11 +9,13 @@ import {
   brand,
   buildHookScript,
   clearConflict,
+  cloneRepo,
   createAccountsStore,
   createRulesStore,
   createSettingsStore,
   createStateStore,
   ensureActiveInclude,
+  findOverlap,
   getActiveConfigPath,
   getConflictPath,
   getProfilePath,
@@ -26,9 +28,11 @@ import {
   setActiveAccount,
   uninstallHook,
   updateRegion,
+  validateCloneUrl,
   writeAccountProfile,
   writeSigningKey,
   findOrphans,
+  FolderOverlapError,
   listGithubAccounts,
   runGitCredential,
   type Account,
@@ -106,6 +110,11 @@ const setSettingsSchema = z.object({
 })
 const pinFolderSchema = z.object({ path: z.string().min(1), accountId: z.string().min(1) })
 const unpinFolderSchema = z.object({ path: z.string().min(1) })
+const cloneRepoSchema = z.object({
+  url: z.string().min(1),
+  destPath: z.string().min(1),
+  accountId: z.string().min(1),
+})
 const removeOrphanedCredentialSchema = z.object({
   host: z.string().min(1),
   username: z.string().min(1),
@@ -244,6 +253,38 @@ ipcMain.handle(IPC.pinFolder, async (_event, payload: unknown) => {
   const rule = rulesStore.pin(path, accountId) // puede lanzar FolderOverlapError, sin capturar acá
   const block = await renderIncludeIfBlock(`${path}/`, getProfilePath(dataDir, accountId))
   updateRegion(globalConfigPath, (region) => `${region}\n${block}`.trim())
+  return rule
+})
+
+// Q1-Q5 (07-quick-clone): orden exacto — cuenta → validar URL → chequear
+// solapamiento → clonar → Auto-Pin. El chequeo de solapamiento corre ANTES
+// del clone (Q5.1): un clone que termina en disco no se puede "deshacer"
+// tan simple como rechazarlo antes de empezar.
+// Hallazgo al implementar: `cloneRepo` es una sola llamada esperada de
+// punta a punta (sin progreso granular, ver proposal.md) — un evento de
+// progreso aparte no agregaba nada que la propia promesa del `invoke` no
+// diera ya (el renderer ya sabe que está "clonando" apenas llama, y
+// "error"/"listo" los da el resultado de la promesa). Se sacó esa
+// complejidad en vez de dejarla sin usar.
+ipcMain.handle(IPC.cloneRepo, async (_event, payload: unknown) => {
+  const { url, destPath, accountId } = cloneRepoSchema.parse(payload)
+  const account = accountsStore.list().find((a) => a.id === accountId)
+  if (!account) throw new Error('Cuenta no encontrada')
+
+  const knownHosts = [...new Set(accountsStore.list().map((a) => a.host))]
+  validateCloneUrl(url, knownHosts)
+
+  const overlap = findOverlap(rulesStore.list(), destPath)
+  if (overlap) throw new FolderOverlapError(destPath, overlap.path)
+
+  await cloneRepo(url, destPath, account)
+
+  // Q4: mismo camino que IPC.pinFolder, no uno paralelo.
+  await writeAccountProfile(dataDir, account)
+  const rule = rulesStore.pin(destPath, account.id)
+  const block = await renderIncludeIfBlock(`${destPath}/`, getProfilePath(dataDir, account.id))
+  updateRegion(globalConfigPath, (region) => `${region}\n${block}`.trim())
+
   return rule
 })
 

@@ -43,12 +43,12 @@ Ver `proposal.md` para el porqué, el alcance completo y los riesgos. Acá, los 
 
 **Escenario verificable:** test unitario — con una regla ya fijada, intentar clonar hacia una subcarpeta (o una carpeta que la contiene) rechaza antes de llamar a `cloneRepo` (se verifica con un espía/mock de `cloneRepo` para confirmar que nunca se llama).
 
-## Q6 — IPC y progreso
+## Q6 — IPC
 
-- **Q6.1** Nuevo canal `IPC.cloneRepo` (`{ url, destPath, accountId }` → éxito/error) y evento `IPC.cloneProgress` (`{ phase: 'clonando' | 'listo' | 'error', message? }`), mismo patrón que `githubVerification` (el renderer se suscribe a un evento, no hace polling).
+- **Q6.1** Nuevo canal `IPC.cloneRepo` (`{ url, destPath, accountId }` → éxito/error). **Decisión tomada al implementar:** no hay un evento de progreso aparte (`cloneProgress`) — se armó uno primero, siguiendo el patrón de `githubVerification`, pero quedó sin ningún consumidor: a diferencia del Device Flow (que sí tiene un callback intermedio independiente de cuándo termina el `invoke`), acá todo el trabajo ocurre dentro de una sola llamada esperada de punta a punta — el propio `invoke` ya le dice al renderer cuándo empezó (al llamarlo), cuándo terminó bien (resuelve) y cuándo falló (rechaza). Se sacó el evento en vez de dejarlo sin usar.
 - **Q6.2** El handler valida el payload con `zod`, igual que el resto de los handlers de `main`.
 
-**Escenario verificable:** cubierto por la verificación en vivo de Q3 (el diálogo recibe los eventos de progreso reales a través de todo el camino de IPC).
+**Escenario verificable:** cubierto por la verificación en vivo de Q3 (el diálogo refleja clonando/listo/error según el estado de la promesa de `window.dossier.cloneRepo(...)`).
 
 ## Q7 — Habilitar el botón
 
