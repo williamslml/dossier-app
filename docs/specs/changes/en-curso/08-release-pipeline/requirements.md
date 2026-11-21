@@ -31,6 +31,8 @@ Ver `proposal.md` para el porqué, el alcance completo y los riesgos. Acá, los 
 
 **Escenario verificable:** con una release de prueba ya publicada manualmente en GitHub (con tu aprobación, ver R2), una instancia local con una versión de `package.json` más vieja detecta la actualización al iniciar, la descarga, y la notificación/diálogo de confirmación aparece — sin instalar nada hasta un clic explícito.
 
+**Hallazgo real, encontrado ejecutando por primera vez un build empaquetado de verdad (nunca `electron .` en modo dev, que es lo único que se había probado hasta ahora):** `electron-updater` revienta con un 404 chequeando `https://github.com/williamslml/dossier-app/releases.atom` — el provider de GitHub de `electron-updater` siempre pide el feed público, sin ningún token, y el repo era privado. No es un bug de implementación, es una decisión de arquitectura: con tu aprobación explícita, se hizo público el repo (`gh repo edit --visibility public`) el 2026-11-21 — la alternativa (guardar un token de GitHub en cada instalación) quedó descartada por tocar manejo de credenciales sin necesidad.
+
 ## Fuera de alcance de este change
 
 Ver "Qué NO cambia / queda fuera" en `proposal.md`: crear/empujar el tag real de una versión, publicar la release (sacarla de borrador), firma con SignPath, `winget`/Scoop.

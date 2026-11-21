@@ -46,7 +46,7 @@ Ninguno formal por ahora (proyecto en solitario, sin orquestador). Se puede defi
 
 ## Git
 
-- Repo: `github.com/williamslml/dossier-app` (privado). Rama por defecto: `main`.
+- Repo: `github.com/williamslml/dossier-app` (público desde 2026-11-21 — necesario para que `electron-updater` pueda chequear actualizaciones sin un token, ver `docs/specs/changes/en-curso/08-release-pipeline/`). Rama por defecto: `main`.
 - Convención de commits: Conventional Commits `tipo(ámbito): descripción` (`fix(core): …`, `feat: …`, `docs: …`, `test: …`); commits atómicos que explican el porqué, no solo el qué.
 - Mensajes legibles para quien no vio el código: el asunto dice el efecto, no la implementación; en cambios no triviales, cuerpo con el problema, qué cambia y cómo probarlo. Lo mismo para la descripción de una PR (Por qué · Qué cambia · Qué NO cambia · Cómo probarlo · Riesgos) y para el commit de merge (nunca el texto por defecto).
 - **Todo cambio no trivial va en su propia rama** (creada desde `main`, con tu aprobación), corta, nombre `tipo/efecto-en-pocas-palabras` en minúsculas y guiones, sin tildes (p. ej. `fix/includeif-realpath-windows`). Se termina con la skill `finishing-a-development-branch` (merge/PR, squash si la PR es una sola unidad lógica). Un cambio trivial (fix puntual, ajuste de texto, doc suelto) puede ir directo a `main`.

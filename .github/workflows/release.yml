@@ -78,6 +78,21 @@ jobs:
       # propio electron-builder ya avisa que va a quitar en su v27).
       - run: pnpm electron-builder --win --publish never
 
+      # Hallazgo real (probado de punta a punta con electron-updater de
+      # verdad, no solo revisando que la release quede bien formada): GitHub
+      # reemplaza los espacios del nombre de archivo por PUNTOS al subir un
+      # asset de release — pero `latest.yml` (que genera electron-builder) y
+      # electron-updater esperan GUIONES (`Dossier-Setup-X.exe`, no
+      # `Dossier.Setup.X.exe`). Con el nombre original (con espacios) la
+      # release quedaba bien, pero la descarga real del update fallaba con
+      # 404. Fix: renombrar los archivos a guiones antes de subirlos, para
+      # que coincidan exactamente con lo que `latest.yml` declara.
+      - name: Renombrar los artefactos con guiones (no espacios)
+        shell: bash
+        run: |
+          mv "release/Dossier Setup ${RELEASE_VERSION}.exe" "release/Dossier-Setup-${RELEASE_VERSION}.exe"
+          mv "release/Dossier Setup ${RELEASE_VERSION}.exe.blockmap" "release/Dossier-Setup-${RELEASE_VERSION}.exe.blockmap"
+
       - name: Crear la release en borrador con los artefactos
         shell: bash
         run: |
@@ -85,6 +100,6 @@ jobs:
             --draft \
             --title "$GITHUB_REF_NAME" \
             --notes "Build automático sin firmar — Fase 5 (08-release-pipeline)." \
-            "release/Dossier Setup ${RELEASE_VERSION}.exe" \
-            "release/Dossier Setup ${RELEASE_VERSION}.exe.blockmap" \
+            "release/Dossier-Setup-${RELEASE_VERSION}.exe" \
+            "release/Dossier-Setup-${RELEASE_VERSION}.exe.blockmap" \
             release/latest.yml

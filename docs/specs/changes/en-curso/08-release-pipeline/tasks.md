@@ -19,8 +19,9 @@
 2. `--publish always` de `electron-builder` paraleliza la subida por artefacto, y cada uno puede decidir crear la release — con dos tags de prueba distintos se vieron **dos** releases creadas para el mismo run.
 3. El fix inicial del punto 1 (`-c.extraMetadata.version=X`) falló en el runner real: el shell por default en `windows-latest` es PowerShell, no bash, y ahí ese flag se parseó distinto (`electron-builder` lo tomó como un path de config inexistente). Fix: escribir la versión directo en el `package.json` del checkout temporal con `npm pkg set` (funciona igual en PowerShell y en bash).
 4. Quitar `--publish` del comando **no alcanza** — `electron-builder` loguea "Implicit publishing triggered by git tag" y publica solo cuando corre contra un tag de git con `GH_TOKEN` presente, aunque no se le pida (default que el propio `electron-builder` avisa que va a quitar en su v27). Sin `--publish never` explícito, se repitió la carrera del punto 2 incluso sin pedir publicar.
+5. Con la release ya bien formada, probando el ciclo completo con una instancia vieja real de la app: `electron-updater` la detectaba bien ("Found version X"), pero la descarga del instalador fallaba con 404. Causa: GitHub reemplaza los espacios del nombre de archivo por **puntos** al subir un asset de release (`Dossier Setup X.exe` → `Dossier.Setup.X.exe`), pero `latest.yml` (que arma `electron-builder`) y `electron-updater` esperan **guiones** (`Dossier-Setup-X.exe`) — coincidencia exacta de nombre, no de contenido. Fix: renombrar los archivos a guiones antes de subirlos con `gh release create`.
 
-Fix final: `electron-builder --win --publish never` (nunca publica solo) + un paso aparte que crea la release y sube los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, atómico.
+Fix final: `electron-builder --win --publish never` (nunca publica solo, build únicamente) + renombrar los artefactos con guiones + un paso aparte que crea la release y sube los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, atómico.
 
 ## 3. `electron-updater` (R3)
 
