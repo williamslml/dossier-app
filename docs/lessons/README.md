@@ -137,6 +137,14 @@ Aplica cuando: se escribe o edita `structure.verify_command` en `.sfp/manifest.j
 
 Quedó guardado como `"pnpm typecheck && pnpm lint && pnpm test (ya existen; perfil feature-first por ADR 0001)"` — la aclaración entre paréntesis viajó pegada al comando. `verify.sh --run-verify` ejecuta ese string literal con `sh -c`, así que la paréntesis rompe la sintaxis y el chequeo falla con un error que no tiene nada que ver con el proyecto. Cualquier nota explicativa sobre un campo ejecutable va en otro lado (un comentario fuera del JSON, o el texto que acompaña al ítem en el plan/reporte), nunca concatenada al valor que un script va a correr tal cual.
 
+---
+
+# Commitear directo a `main` sin ramas no es lo que pedía la metodología — fue un error repetido, no una convención
+
+Aplica cuando: se empieza a implementar un cambio no trivial en un proyecto con `spec-first-protocol` instalado.
+
+Desde la Fase 0 hasta la Fase 3 (parte 1), todos los cambios se commitearon directo a `main`, sin abrir ninguna rama. `CLAUDE.md` sí documentaba una convención de nombres de rama (`tipo/efecto-en-pocas-palabras`) y el proyecto tiene instalada la skill `finishing-a-development-branch` (pensada exactamente para cerrar una rama con merge/PR) — ambas cosas no tendrían sentido si el flujo real fuera siempre commitear directo a `main`. La confusión: la pregunta 25 de la entrevista de instalación (`interview.md`) es sobre la **granularidad del commit** (por bloque, uno solo, o ninguno) — "el agente commitea directo sin pedir aprobación por cada commit" responde esa pregunta, pero no dice nada sobre si hay que abrir una rama. Son dos decisiones separadas (`references/git-practices.md` sección 2 de la skill). Corregido en `CLAUDE.md`: ahora separa expresamente "usar una rama para cambios no triviales" de "la granularidad del commit dentro de esa rama".
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
