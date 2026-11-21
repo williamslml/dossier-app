@@ -69,6 +69,28 @@ beforeEach(async () => {
 })
 
 describe('includeIf por carpeta (R4)', () => {
+  it('[DEBUG temporal] diagnóstico de rutas en este runner', async () => {
+    const { execFileSync } = await import('node:child_process')
+    console.log('DEBUG dirA:', dirA)
+    console.log('DEBUG git --version:', execFileSync('git', ['--version']).toString().trim())
+    console.log(
+      'DEBUG absolute-git-dir:',
+      execFileSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: dirA }).toString().trim(),
+    )
+    console.log('DEBUG global config contents:\n' + readFileSync(globalConfigPath, 'utf8'))
+    console.log(
+      'DEBUG config --list (sin GIT_CONFIG_GLOBAL):\n' +
+        execFileSync('git', ['config', '--list'], { cwd: dirA }).toString(),
+    )
+    console.log(
+      'DEBUG config --list (CON GIT_CONFIG_GLOBAL):\n' +
+        execFileSync('git', ['config', '--list'], {
+          cwd: dirA,
+          env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfigPath },
+        }).toString(),
+    )
+  })
+
   it('cada carpeta resuelve su propia identidad (R4.1, R4.3)', async () => {
     expect(await gitConfigGet(dirA, 'user.email')).toBe('a@example.invalid')
     expect(await gitConfigGet(dirB, 'user.email')).toBe('b@example.invalid')
