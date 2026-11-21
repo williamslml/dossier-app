@@ -44,11 +44,21 @@ jobs:
       # la versión de package.json para nombrar la release, no el tag que
       # disparó el workflow — si no coinciden, crea una release "untagged"
       # nueva en vez de encontrar/actualizar la que corresponde al tag. Se
-      # fuerza la versión acá a partir del tag real (`v1.2.3` → `1.2.3`),
-      # sin tocar el package.json del repo.
+      # fuerza la versión acá a partir del tag real (`v1.2.3` → `1.2.3`).
       - name: Derivar la versión del tag
         shell: bash
         run: echo "RELEASE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+
+      # Hallazgo real (mismo tag de prueba): el runner de Windows corre
+      # `run:` con PowerShell por default, y ahí `-c.extraMetadata.version=X`
+      # (el flag de electron-builder que normalmente setea esto) se parsea
+      # distinto que en bash — electron-builder lo interpretó como un path
+      # de config inexistente y falló. Más simple y portable entre shells:
+      # escribir la versión directo en package.json (en el checkout
+      # temporal del runner, nunca en el repo) antes de construir.
+      - name: Fijar la versión del tag en package.json
+        shell: bash
+        run: npm pkg set version="$RELEASE_VERSION"
 
       # Hallazgo real (mismo tag de prueba): `--publish always` de
       # electron-builder sube cada artefacto con su propio "publisher" en
@@ -59,7 +69,7 @@ jobs:
       # el mismo tag). Más simple y confiable: construir sin publicar, y
       # crear la release + subir los artefactos en un solo paso atómico con
       # `gh release create` (nunca paraleliza su propia subida de archivos).
-      - run: pnpm electron-builder --win -c.extraMetadata.version=${{ env.RELEASE_VERSION }}
+      - run: pnpm electron-builder --win
 
       - name: Crear la release en borrador con los artefactos
         shell: bash
