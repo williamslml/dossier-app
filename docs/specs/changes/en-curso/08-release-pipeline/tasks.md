@@ -39,7 +39,7 @@ Fix final: `electron-builder --win --publish never` (nunca publica solo, build �
 - [x] `pnpm dist:win` local sigue generando un instalador funcional
 - [x] Verificado en vivo: la app arranca normal con `electron-updater` wireado — en modo desarrollo (sin empaquetar), la propia librería salta el chequeo sola ("Skip checkForUpdates because application is not packed"), sin romper nada
 - [x] **Con tu aprobación explícita en el momento:** empujar un tag de prueba y confirmar que `release.yml` corre y deja una release en **borrador** con el instalador adjunto — hicieron falta 4 vueltas (ver los 4 hallazgos reales arriba) hasta que la quinta corrida (`v0.0.0-test4`) dejó una sola release, en borrador, con el tag correcto y los tres artefactos juntos
-- [ ] **Con tu aprobación explícita en el momento:** publicar esa release de prueba manualmente desde GitHub, y confirmar que una instancia local con una versión vieja detecta la actualización, la descarga, y espera el clic antes de instalar
+- [x] **Con tu aprobación explícita en el momento:** publicar esa release de prueba manualmente desde GitHub, y confirmar que una instancia local con una versión vieja detecta la actualización, la descarga, y espera el clic antes de instalar — verificado con una instancia empaquetada real (0.0.0 → 9.9.10): detectó, descargó en segundo plano (con fallback correcto a descarga completa cuando no hay blockmap viejo) y quedó esperando el clic, sin instalar sola. Hicieron falta dos hallazgos más en el camino (ver arriba): `resources/` faltante en el `.asar` rompía el arranque de la bandeja en cualquier build empaquetado, y el nombre de archivo con espacios no coincidía con lo que `latest.yml`/`electron-updater` esperaban (guiones, no puntos)
 
 ## 5. Cierre del change
 
