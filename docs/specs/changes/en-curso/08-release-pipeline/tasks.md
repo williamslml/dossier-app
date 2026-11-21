@@ -4,27 +4,30 @@
 
 ## 1. `electron-builder.yml` (R1)
 
-- [ ] Agregar el bloque `publish` (provider github, owner, repo)
-- [ ] Confirmar que `pnpm dist:win` local sigue funcionando igual que antes (sin `GH_TOKEN`, no intenta publicar nada)
+- [x] Agregar el bloque `publish` (provider github, owner, repo)
+- [x] Confirmar que `pnpm dist:win` local sigue funcionando igual que antes (sin `GH_TOKEN`, no intenta publicar nada) — verificado, instalador generado sin problema
 
 ## 2. `.github/workflows/release.yml` (R2)
 
-- [ ] Nuevo workflow, dispara con tags `v*`, `windows-latest` únicamente
-- [ ] Pasos: typecheck/lint/test (mismo criterio que `ci.yml`) → `electron-vite build` → `electron-builder --win --publish always`
-- [ ] `permissions: contents: write` explícito
+- [x] Nuevo workflow, dispara con tags `v*`, `windows-latest` únicamente
+- [x] Pasos: typecheck/lint/test (mismo criterio que `ci.yml`) → `electron-vite build` → `electron-builder --win --publish always`
+- [x] `permissions: contents: write` explícito
 
 ## 3. `electron-updater` (R3)
 
-- [ ] Agregar la dependencia
-- [ ] Wire en `src/main/index.ts`: `checkForUpdates()` al iniciar, `autoInstallOnAppQuit = false`
-- [ ] `update-downloaded`: notifica + marca `updateReadyToInstall`
-- [ ] El callback global ya existente de clic en notificaciones revisa esa marca antes de decidir mostrar la ventana o instalar (ver design.md — hallazgo real sobre `Notification.handleActivation`)
-- [ ] `error`: solo logueo, nunca interrumpe el arranque
+- [x] Agregar la dependencia
+- [x] Wire en `src/main/index.ts`: `checkForUpdates()` al iniciar, `autoInstallOnAppQuit = false`
+- [x] `update-downloaded`: notifica + marca `updateReadyToInstall`
+- [x] El callback global ya existente de clic en notificaciones revisa esa marca antes de decidir mostrar la ventana o instalar (ver design.md — hallazgo real sobre `Notification.handleActivation`)
+- [x] `error`: solo logueo, nunca interrumpe el arranque
+
+**Hallazgo real, encontrado al probar en vivo (no lo detectó `tsc`):** `import { autoUpdater } from 'electron-updater'` compila pero falla en tiempo de ejecución — `electron-updater` es CommonJS puro, bajo ESM solo expone un default export. Fix: `import electronUpdaterPkg from 'electron-updater'; const { autoUpdater } = electronUpdaterPkg`.
 
 ## 4. Verificación
 
-- [ ] `pnpm typecheck && pnpm lint && pnpm test && pnpm build` en verde
-- [ ] `pnpm dist:win` local sigue generando un instalador funcional (repetir la prueba ya hecha en una sesión anterior, confirmando que agregar `publish` no la rompió)
+- [x] `pnpm typecheck && pnpm lint && pnpm test && pnpm build` en verde (105 tests — esta rama no tiene Quick Clone, que vive aparte en `feat/quick-clone`)
+- [x] `pnpm dist:win` local sigue generando un instalador funcional
+- [x] Verificado en vivo: la app arranca normal con `electron-updater` wireado — en modo desarrollo (sin empaquetar), la propia librería salta el chequeo sola ("Skip checkForUpdates because application is not packed"), sin romper nada
 - [ ] **Con tu aprobación explícita en el momento:** empujar un tag de prueba y confirmar que `release.yml` corre y deja una release en **borrador** con el instalador adjunto
 - [ ] **Con tu aprobación explícita en el momento:** publicar esa release de prueba manualmente desde GitHub, y confirmar que una instancia local con una versión vieja detecta la actualización, la descarga, y espera el clic antes de instalar
 

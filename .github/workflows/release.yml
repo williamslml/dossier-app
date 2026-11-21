@@ -1,0 +1,43 @@
+name: Release
+
+# Fase 5 (docs/product.md §5, 08-release-pipeline): dispara con un tag v*,
+# nunca con un push a una rama. Deja la release en GitHub como BORRADOR
+# (default de electron-builder cuando no se fija `releaseType` — ver
+# requirements.md R1.2) - publicarla es un paso manual, no lo hace este
+# workflow.
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write # necesario para que electron-builder cree la release (borrador)
+
+jobs:
+  release:
+    name: Build + publicar (borrador)
+    runs-on: windows-latest # solo Windows - el instalador real, no la matriz de ci.yml
+    env:
+      RTK_DISABLED: '1' # comandos de evidencia de SFP, sin comprimir (CLAUDE.md)
+      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # electron-builder lo busca con este nombre
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24.22'
+          cache: 'pnpm'
+
+      - run: pnpm install --frozen-lockfile
+
+      - run: pnpm lint
+
+      - run: pnpm typecheck
+
+      - run: pnpm test
+
+      - run: pnpm electron-vite build
+
+      - run: pnpm electron-builder --win --publish always

@@ -4,6 +4,11 @@ import { fileURLToPath } from 'node:url'
 import { app, dialog, globalShortcut, ipcMain, Menu, nativeTheme, shell } from 'electron'
 import { menubar } from 'electron-menubar'
 import log from 'electron-log/main.js'
+// electron-updater es CommonJS puro — bajo ESM solo expone un default
+// export, el import nombrado falla en tiempo de ejecución aunque los tipos
+// lo permitan (hallazgo real: probado en vivo, no solo compilado).
+import electronUpdaterPkg from 'electron-updater'
+const { autoUpdater } = electronUpdaterPkg
 import { z } from 'zod'
 import {
   brand,
@@ -454,13 +459,50 @@ app.on('will-quit', () => {
   globalShortcut.unregisterAll()
 })
 
+// R3 (08-release-pipeline): nunca instala sola, ni descarga con prompts
+// interactivos — solo descarga en segundo plano y espera un clic.
+autoUpdater.autoDownload = true
+autoUpdater.autoInstallOnAppQuit = false
+
+// R3.3/Q8 (hallazgo de diseño): `Notification.handleActivation` registra
+// un único callback GLOBAL para cualquier clic en cualquier notificación
+// — no se puede registrar uno aparte solo para la de "actualización
+// lista" sin reemplazar el que ya muestra la ventana. La señal vive acá,
+// el callback único (más abajo) la revisa antes de decidir qué hacer.
+let updateReadyToInstall = false
+
+autoUpdater.on('update-downloaded', (info) => {
+  updateReadyToInstall = true
+  notify({
+    title: brand.displayName,
+    body: `Versión ${info.version} lista para instalar — hacé clic para reiniciar y actualizar.`,
+  })
+})
+
+autoUpdater.on('error', (err) => {
+  // R3.4: nunca interrumpe el arranque normal de la app.
+  log.error('autoUpdater falló', err)
+})
+
 mb.on('ready', () => {
   log.info('bandeja lista')
 
   // ADR 0007: un único manejador global de clics en notificaciones, que
   // funciona incluso con arranque en frío (la app no corría cuando se
   // clickeó el aviso).
-  registerNotificationClickHandler(() => mb.showWindow())
+  registerNotificationClickHandler(() => {
+    if (updateReadyToInstall) {
+      autoUpdater.quitAndInstall() // R3.3: solo acá, nunca antes de este clic
+      return
+    }
+    mb.showWindow()
+  })
+
+  // R3.1: chequea al iniciar — errores de red/GitHub cualquiera se
+  // absorben en el handler de 'error' de arriba, nunca rompen el arranque.
+  void autoUpdater.checkForUpdates().catch((err: unknown) => {
+    log.error('no se pudo chequear actualizaciones', err)
+  })
 
   // S8.2 (05-ajustes): atajo global para mostrar/ocultar la ventana sin
   // pasar por la bandeja. Combinación fija para esta primera versión —

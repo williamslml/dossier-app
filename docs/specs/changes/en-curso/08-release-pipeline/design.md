@@ -78,7 +78,13 @@ jobs:
 ```ts
 // src/main/index.ts (agregado, no un archivo nuevo - mismo lugar que el
 // resto del ciclo de vida de la app)
-import { autoUpdater } from 'electron-updater'
+// Hallazgo real, probado en vivo (no solo compilado): electron-updater es
+// CommonJS puro — bajo ESM, el import nombrado (`import { autoUpdater }
+// from 'electron-updater'`) pasa TypeScript pero falla en tiempo de
+// ejecución ("Named export 'autoUpdater' not found"). Hace falta el
+// default export y desestructurar después.
+import electronUpdaterPkg from 'electron-updater'
+const { autoUpdater } = electronUpdaterPkg
 
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = false // R3.3: nunca instala sola al cerrar

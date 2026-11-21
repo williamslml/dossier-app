@@ -278,6 +278,16 @@ El hook de `pre-commit`/`pre-push` de la guardia de identidad (S11) graba el ema
 
 **Para la próxima vez:** cuando un valor queda "horneado" dentro de un artefacto generado en vez de leerse en vivo, listar **todos** los caminos que pueden cambiar ese valor (no solo el que instala por primera vez) y confirmar que cada uno regenera el artefacto — un test de "cambié el valor por este otro camino, ¿el artefacto lo refleja?" habría encontrado esto antes que una revisión manual.
 
+---
+
+# Un paquete CommonJS puede pasar `tsc` con un import nombrado bajo ESM y aun así fallar en tiempo de ejecución
+
+Aplica cuando: se agrega una dependencia nueva a un proyecto que corre como ESM (`"type": "module"`), sobre todo si es más vieja o no declara exports duales (ESM+CJS) en su `package.json`.
+
+`import { autoUpdater } from 'electron-updater'` tipaba bien y compilaba sin error (TypeScript, con los `@types` del paquete, no distingue si el runtime real va a aceptar esa forma) pero falló al arrancar la app real: "Named export 'autoUpdater' not found. The requested module 'electron-updater' is a CommonJS module...". Solo apareció probando en vivo (`electron .`), ningún `tsc`/test lo iba a atrapar, porque el problema es de interop ESM↔CJS en tiempo de ejecución de Node/Electron, no de tipos. Fix: `import pkg from 'electron-updater'; const { autoUpdater } = pkg` (el mensaje de error de Node ya sugiere exactamente esto).
+
+**Para la próxima vez:** agregar una dependencia nueva y usarla con `import { algo } from 'paquete'` no es suficiente verificación si el proyecto corre bajo ESM — hace falta levantar la app de verdad al menos una vez después de agregarla, antes de dar por buena la integración, sobre todo con paquetes que no son explícitamente "ESM-first". `tsc` en verde no prueba que el módulo cargue en tiempo de ejecución.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

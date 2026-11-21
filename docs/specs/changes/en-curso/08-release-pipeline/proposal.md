@@ -1,6 +1,6 @@
 # Proposal — Pipeline de release (Fase 5)
 
-**Aprobación humana obligatoria** (`CLAUDE.md`): "cualquier paso de firma o publicación de release (SignPath, tags, GitHub Releases)". Este change construye el *pipeline*, pero **ningún tag se crea ni se empuja, y ninguna GitHub Release se publica**, sin tu aprobación explícita en el momento — ver "Qué NO hace este change" más abajo.
+**Aprobación humana obligatoria** (`CLAUDE.md`): "cualquier paso de firma o publicación de release (SignPath, tags, GitHub Releases)". Este change construye el _pipeline_, pero **ningún tag se crea ni se empuja, y ninguna GitHub Release se publica**, sin tu aprobación explícita en el momento — ver "Qué NO hace este change" más abajo.
 
 ## Por qué
 
