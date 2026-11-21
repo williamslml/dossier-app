@@ -60,4 +60,38 @@ describe('accounts (M2)', () => {
     const reread = createAccountsStore({ cwd })
     expect(reread.list()).toEqual([created])
   })
+
+  it('asigna una clave de firma sin tocar el resto (S6.3, 05-ajustes)', () => {
+    const created = store.create(newAccount)
+    const updated = store.setSigningKey(created.id, {
+      format: 'ssh',
+      keyId: '~/.ssh/id_ed25519.pub',
+    })
+    expect(updated).toEqual({
+      ...created,
+      signingKey: { format: 'ssh', keyId: '~/.ssh/id_ed25519.pub' },
+    })
+  })
+
+  it('asignar una clave de firma a un id inexistente lanza', () => {
+    expect(() => store.setSigningKey('no-existe', { format: 'openpgp', keyId: 'ABC123' })).toThrow()
+  })
+
+  it('al eliminar una cuenta, recuerda su host+username (S9.2, 05-ajustes)', () => {
+    const created = store.create(newAccount)
+    store.remove(created.id)
+    expect(store.listRemoved()).toEqual([{ host: 'github.com', username: 'juan-dev' }])
+  })
+
+  it('eliminar un id inexistente no agrega nada a lo recordado', () => {
+    store.remove('no-existe')
+    expect(store.listRemoved()).toEqual([])
+  })
+
+  it('lo recordado persiste en disco, igual que las cuentas', () => {
+    const created = store.create(newAccount)
+    store.remove(created.id)
+    const reread = createAccountsStore({ cwd })
+    expect(reread.listRemoved()).toEqual([{ host: 'github.com', username: 'juan-dev' }])
+  })
 })

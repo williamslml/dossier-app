@@ -131,7 +131,7 @@ Aplica cuando: se corre cualquier script de la skill `spec-first-protocol` que l
 
 `mget` (en `lib.sh`) usa `print()` de Python para devolver el valor de un campo. Si ese valor tiene un carácter fuera de ASCII (en nuestro caso, `→` dentro de `structure.rationale`) y la consola de Python no está en modo UTF-8 (el default en Windows suele ser `cp1252`), `print()` lanza `UnicodeEncodeError`, el proceso termina con error antes de imprimir nada, y `mget` devuelve una cadena vacía sin ningún aviso — `verify.sh` lo reporta como "AVISO: structure.rationale vacío", aunque el campo tiene contenido real. Fix: correr estos scripts con `PYTHONUTF8=1` por delante (mismo patrón que ya usa `integrations.json` para el `undo` de `rtk`). No es un problema del manifiesto ni hay que vaciar los campos de evitar tildes/flechas para "ser compatibles" — es un bug de codificación del entorno, se soluciona con la variable de entorno.
 
-# El campo `verify_command` del manifiesto debe ser *solo* el comando, nada de prosa
+# El campo `verify_command` del manifiesto debe ser _solo_ el comando, nada de prosa
 
 Aplica cuando: se escribe o edita `structure.verify_command` en `.sfp/manifest.json`.
 
@@ -144,6 +144,139 @@ Quedó guardado como `"pnpm typecheck && pnpm lint && pnpm test (ya existen; per
 Aplica cuando: se empieza a implementar un cambio no trivial en un proyecto con `spec-first-protocol` instalado.
 
 Desde la Fase 0 hasta la Fase 3 (parte 1), todos los cambios se commitearon directo a `main`, sin abrir ninguna rama. `CLAUDE.md` sí documentaba una convención de nombres de rama (`tipo/efecto-en-pocas-palabras`) y el proyecto tiene instalada la skill `finishing-a-development-branch` (pensada exactamente para cerrar una rama con merge/PR) — ambas cosas no tendrían sentido si el flujo real fuera siempre commitear directo a `main`. La confusión: la pregunta 25 de la entrevista de instalación (`interview.md`) es sobre la **granularidad del commit** (por bloque, uno solo, o ninguno) — "el agente commitea directo sin pedir aprobación por cada commit" responde esa pregunta, pero no dice nada sobre si hay que abrir una rama. Son dos decisiones separadas (`references/git-practices.md` sección 2 de la skill). Corregido en `CLAUDE.md`: ahora separa expresamente "usar una rama para cambios no triviales" de "la granularidad del commit dentro de esa rama".
+
+---
+
+# Nunca aprobar/rechazar credenciales de prueba contra un host real (ni siquiera `github.com`) en un test
+
+Aplica cuando: se escribe un test que llama a `runGitCredential('approve'/'fill', ...)`, directo o a través de `core/features/link-account`.
+
+Un test de `linkGithubAccount` que usaba el host real `github.com` (hardcodeado dentro de la función, correcto en producción) con un token de prueba falso falló con `git credential fill` código 128 ("unable to get password from user") — confirma en la práctica el hallazgo ya anotado más arriba: GCM trata distinto a los hosts que reconoce nativamente, y un token falso contra `github.com` no se comporta como contra un host reservado `.invalid`. Fix: cualquier prueba que ejercite el guardado/verificación real en GCM usa siempre un host reservado inventado (`algo.invalid`, nunca resuelve por DNS) — nunca un host real, ni siquiera de pasada o con datos de prueba. Para probar una función que **internamente** fija un host real (como `linkGithubAccount` con `'github.com'`), se le inyecta también un `gitCredential` falso: esa prueba solo verifica el cableado (qué host usa, qué datos pasa), no el guardado real en GCM — eso ya lo cubre `saveLinkedAccount` contra un host reservado, por separado.
+
+---
+
+# `window.dossier` nunca existió: el preload con `sandbox: true` no admite ES modules, y falla en silencio total
+
+Aplica cuando: se usa `sandbox: true` (ADR 0006) en un proyecto que es ESM en todas partes (`"type": "module"`, ADR 0003).
+
+**Esto estuvo roto desde que se construyó Fase 3 (parte 1)** y nadie lo notó: ni las capturas de pantalla (la app "se veía bien" porque el estado inicial por defecto — "Sin cuenta activa", área vacía — es indistinguible a simple vista del estado real cuando falla), ni `electron-log` (`renderer cargó sin error` se sigue imprimiendo igual: la _página_ carga bien, es el _preload_ el que no), ni `did-fail-load` (ese evento es de la navegación de la página, no del preload).
+
+La causa real: un preload sandboxed (`sandbox: true`) en Electron **no puede usar `import`/`export`**, sin importar la extensión del archivo (`.mjs` no alcanza) — es una limitación documentada de Electron, no un bug de build. El error real (`Unable to load preload script... SyntaxError: Cannot use import statement outside a module`) solo aparece en la consola de DevTools del propio proceso, en un evento (`preload-error`) que la app no escuchaba.
+
+Fix:
+
+1. `electron.vite.config.ts`: forzar el build del preload a CommonJS real, con extensión `.cjs` explícita para no depender del `"type": "module"` del `package.json` raíz (`rollupOptions.output.format: 'cjs'`, `entryFileNames: '[name].cjs'`).
+2. `src/main/index.ts`: escuchar `webContents.on('preload-error', ...)` y avisar (log + notificación) — sin esto, una futura rotura del preload volvería a quedar invisible.
+
+Cómo se encontró: recién al intentar automatizar un clic real con CDP (protocolo de depuración de Chrome) y revisar la consola del proceso directamente — ninguna de las verificaciones visuales anteriores (capturas de pantalla, `pnpm test`, `pnpm build`, arranque headless) lo hubiera detectado, porque ninguna ejercita de verdad una llamada a `window.dossier` end-to-end.
+
+---
+
+# `fill` justo después de `approve` puede fallar una vez para hosts que GCM reconoce nativamente — aunque el token sí quedó guardado
+
+Aplica cuando: se llama `approve` seguido de `fill` para el mismo host/usuario, en código (no a mano en una terminal), contra un host real que GCM reconoce (`github.com`).
+
+Con una cuenta de GitHub real recién autorizada por Device Flow, `saveLinkedAccount` guardaba el token con `approve` y fallaba al verificarlo con `fill` (`git credential fill salió con código 128: fatal: unable to get password from user`) — pero el Administrador de Credenciales de Windows (`cmdkey /list`, sin exponer el secreto) mostraba que la entrada `git:https://github.com` con el usuario correcto **sí existía**. No era un problema de identidad (ya resuelto antes, ver la lección de arriba): es una carrera transitoria de GCM al encadenar `approve`→`fill` muy rápido en código, que no aparece si hay una pausa natural (como al probarlo a mano en una terminal, que es como se validó en la Fase 2). Fix: reintentar `fill` un par de veces con una pausa corta antes de rendirse (`fillWithRetry` en `core/features/link-account/link-account.ts`).
+
+---
+
+# `git credential fill` falla para github.com aunque la credencial esté guardada — hay que hablar directo con el binario de GCM
+
+Aplica cuando: `approve`+`fill` guardan bien el token (confirmado en el Administrador de Credenciales) pero `fill` sigue fallando con "fatal: unable to get password from user" (código 128) para un host como `github.com`, incluso reintentando.
+
+Investigando con el usuario (`cmdkey /list` mostró la credencial correcta; una prueba manual de `git credential fill` en una terminal mostró que lo que realmente pasa es que Git for Windows intenta abrir **el diálogo gráfico de contraseña** — nuestra app lo tiene bien deshabilitado, así que en vez de preguntar, falla), se probaron **tres hipótesis en orden**, dos descartadas antes de llegar a la real:
+
+1. **Descartada:** `-c credential.https://github.com.provider=generic` / variable de entorno `GCM_PROVIDER=generic` (pensando que GCM usa un proveedor específico de GitHub que ignora el almacén genérico). Probado con datos descartables contra `github.com` real (nunca con el token real del usuario), en las dos variantes — ninguna cambió el resultado.
+2. **Descartada:** sembrar el token con `git credential-manager github login --username <login> --token <token> --no-ui` (el comando propio del proveedor de GitHub) en vez de `approve`. Confirmado que la cuenta quedaba bien registrada (`git credential-manager github list` la mostraba) — pero `git credential fill` **seguía fallando igual** después. El problema no era la falta de registro.
+3. **La causa real:** el problema no es el almacén ni el proveedor — es que `git credential fill` (el **despachador genérico** de git hacia el credential helper configurado) no resuelve bien para `github.com`, sin importar qué haya guardado. En cambio, invocar el binario de GCM **directo**, sin pasar por ese despachador (`git credential-manager get`), sí funciona — confirmado con datos de prueba contra un host reservado (`store`→`get`→`erase`, los tres con éxito).
+
+**Fix real:** `core/features/git-credential` ya no llama a `git credential <acción>` — llama directo a `git credential-manager <acción nativa>` (`approve`→`store`, `fill`→`get`, `reject`→`erase`), mismo protocolo por `stdin`, para **cualquier** host, sin caso especial para GitHub. Esto además mejoró la seguridad: ya no hace falta pasar el token como argumento de línea de comandos (como exigía la hipótesis 2) — todo sigue yendo por `stdin`.
+
+**Para la próxima vez:** cuando una hipótesis "suena razonable" (como la del proveedor específico) pero no se puede probar con el caso real, conviene buscar primero si hay una forma de invocar el mecanismo subyacente **más directamente** (menos capas intermedias) antes de ir a buscar una API alternativa — el despachador genérico de git resultó ser la capa rota, no GCM en sí.
+
+---
+
+# Un valor con backslashes de Windows pegado como texto suelto en un archivo de Git config rompe el parseo
+
+Aplica cuando: se arma a mano (concatenación de texto, no `git config --file ... key value`) cualquier línea que vaya a un archivo `.gitconfig`, con una ruta real de Windows como valor.
+
+`ensureActiveInclude` (el `[include] path = …` de la cuenta activa, `core/features/gitconfig/region.ts`) armaba la línea con la ruta de Windows tal cual (`C:\Users\...`), pegada directo al texto. Git interpreta `\` dentro de un valor de config como inicio de una secuencia de escape — `\U` (de `\Users`) no es una secuencia válida, y el archivo entero falla con `fatal: bad config line`. `writeIncludeIf` ya evitaba este mismo problema para el patrón de `gitdir` (normaliza a `/` antes de escribir), pero `ensureActiveInclude` se escribió después y no reutilizó ese criterio — se encontró recién con un test de integración real (`region.test.ts`), no con un test que solo comparaba texto esperado. Fix: cualquier ruta de Windows que se inserte como texto suelto en un archivo de config (no a través de `git config --file`, que sí escapa solo) tiene que normalizarse a `/` primero — mismo criterio en todo el módulo, no uno distinto por función.
+
+# `git config --file` no crea el directorio padre, y un archivo global inexistente hace fallar `--show-origin` (no devuelve vacío)
+
+Aplica cuando: se escribe un archivo de perfil nuevo dentro de una carpeta que todavía no existe (`core/features/identity`), o se resuelve la ruta real del config global de una instalación nueva de Git (`src/main/identity.ts`).
+
+Dos hallazgos del mismo tipo, en la misma sesión: (1) `git config --file <ruta>/profiles/<id>.gitconfig key value` falla con "No such file or directory" si `profiles/` no existe — Git no crea directorios intermedios, solo el archivo final; hay que `mkdirSync(dirname(profilePath), { recursive: true })` antes de escribir, en `writeAccountProfile` **y** en `setActiveAccount` (el `dataDir` mismo tampoco se puede asumir que ya existe). (2) `git config --global --list --show-origin` contra un `GIT_CONFIG_GLOBAL` que apunta a un archivo que ni siquiera existe todavía (máquina nueva, primera vez que corre Dossier) no devuelve una lista vacía — falla con "unable to read config file". Los dos casos (archivo vacío sin ninguna clave, y archivo inexistente) necesitan el mismo manejo (forzar la creación con una escritura sentinela), pero son fallos distintos y hay que probar los dos por separado — un test que solo cubre "vacío" no prueba "inexistente".
+
+---
+
+# Un test que cuenta entradas del directorio temporal del sistema para probar "no quedó nada residual" es inestable bajo ejecución en paralelo
+
+Aplica cuando: se quiere verificar que una función limpia sus archivos temporales (`mkdtempSync`/`rmSync` en un `finally`), contando cuántas entradas con cierto prefijo hay en `os.tmpdir()` antes y después de llamarla.
+
+`renderIncludeIfBlock` limpia bien su directorio descartable (confirmado leyendo el código: `rmSync` dentro de un `finally`), pero un test que comparaba el conteo de entradas de `tmpdir()` antes/después fallaba de forma intermitente corriendo la suite completa (pasó, falló, pasó en tres corridas seguidas) — nunca en aislamiento. Causa: `tmpdir()` es un recurso **global compartido** con cualquier otro archivo de test corriendo en paralelo (Vitest corre archivos de test en paralelo por defecto); otro test creando/borrando su propio directorio temporal en el medio corre la carrera y desbalancea el conteo, sin que haya ningún bug real. Fix: se quitó el test — la garantía ya es verificable leyendo las 6 líneas de la función, y un conteo de un recurso ambiente que ningún test puede aislar de verdad no prueba nada que la lectura del código no pruebe ya, y encima mete inestabilidad real a la suite.
+
+---
+
+# `git credential-manager --help` no siempre devuelve salida capturable; el binario real está en `mingw64/bin/`, no en el PATH directo
+
+Aplica cuando: se necesita inspeccionar la superficie real de comandos de GCM (qué subcomandos tiene, si alguno lista cuentas guardadas) en vez de asumirlo de memoria/documentación.
+
+`git credential-manager --help` (invocado así, como subcomando de `git`) no devolvió salida capturable en varios intentos (ni por `Bash`, ni redirigiendo stdout/stderr explícitamente con `Start-Process` de PowerShell) — sin error, pero tampoco contenido. La causa no se investigó a fondo (podría ser cómo ese binario concreto escribe a la consola bajo ciertos entornos no interactivos), pero el fix fue más simple: invocar el ejecutable real directo, encontrado buscando dentro de la instalación de Git (`(Get-Command git).Source`, subir dos carpetas, `Get-ChildItem -Recurse -Filter "git-credential-manager*"` → `mingw64/bin/git-credential-manager.exe`) en vez de depender del despachador `git <subcomando>`. Con el binario real, `--help` sí respondió con el árbol completo de comandos.
+
+**Hallazgo real de ese árbol** (no documentado de forma clara en ningún lado encontrado por búsqueda web): los comandos de nivel superior son `get`/`store`/`erase`/`configure`/`unconfigure`/`diagnose`, más dos grupos específicos de proveedor, `azure-repos` y `github` — **no hay un "listar todo" genérico**. Pero `github list` sí existe ("List all known GitHub accounts"), y `azure-repos list <organization>` también — el patrón es que **solo los proveedores con un grupo de comandos propio** tienen listado; GitLab (que usa el almacén genérico, sin su propio grupo) no tiene equivalente. Para cualquier diseño que necesite "qué cuentas tiene GCM guardadas", hay que verificar primero si el proveedor en cuestión tiene su propio grupo de comandos — no asumir ni que todos lo tienen, ni que ninguno lo tiene.
+
+---
+
+# `electron-menubar` oculta la ventana sola al perder el foco — choca con un botón de "Minimizar" propio
+
+Aplica cuando: se agrega un botón de minimizar (u otro control de ventana estándar) a una app armada con `electron-menubar` u otra librería de menú desplegable/bandeja.
+
+El usuario probó la app real y reportó: "le di click a minimizar y lo sacó del taskbar" — lo opuesto a minimizar (que debería dejarla en la barra de tareas). La causa no apareció en ningún test, porque los tests y las llamadas sintéticas por CDP no siempre disparan un evento `blur` real de la ventana — la causa solo se vio probando con clics reales. `electron-menubar` tiene `hideOnBlur` activado por defecto (pensado para que el menú desplegable se cierre solo al hacer clic afuera, su comportamiento típico), y minimizar una ventana también le hace perder el foco — así que apenas se minimizaba, la propia librería la ocultaba por completo, encima de haberla minimizado, dejándola sin ningún rastro en la barra de tareas. Fix: `hideOnBlur: false` en las opciones de `menubar(...)` — a cambio, la ventana ya no se cierra sola al hacer clic afuera (el usuario lo prefirió así: "por algo en todas las aplicaciones existe el minimizar y el botón x", quiere que cada botón haga lo suyo, como cualquier app normal).
+
+**Para la próxima vez:** cuando se agregan controles de ventana "normales" (minimizar, maximizar) a una librería pensada para comportarse como un menú desplegable, revisar primero qué comportamiento "automático" trae esa librería por defecto (ocultarse al perder el foco, ocultarse al hacer clic afuera, etc.) — puede chocar con lo que un control estándar espera, y el choque no se nota en ningún test automatizado si ese test no dispara el evento real que lo dispara (acá, `blur`).
+
+---
+
+# Un ícono de bandeja que "se ve chico" casi nunca es un problema de tamaño — Windows usa el mismo cajón para todos
+
+Aplica cuando: alguien compara el ícono de la bandeja de la app con el de otra app y dice que "se ve más chico" o "hay que agrandarlo".
+
+El usuario comparó el ícono de Dossier con el de otra app (Serena) en la bandeja real y pidió agrandarlo. Antes de tocar nada más, se midió la captura real píxel por píxel (`sharp`, buscando el bounding box de contenido no-fondo de cada ícono): los dos ocupaban **exactamente 16×16 píxeles**, en la misma posición vertical — idénticos. Windows le da a todos los íconos de la bandeja el mismo cajón fijo; ninguna app puede hacer el suyo más grande que el de al lado, sin importar la resolución del archivo que se le pase.
+
+Lo que se percibía como "más chico" era densidad/contraste de color: un ícono de color sólido (naranja saturado) pesa mucho más al ojo, en el mismo cajón de 16px, que uno monocromo de trazo fino sobre fondo oscuro — sin que ninguno de los dos sea literalmente más grande. Además, agrandar el glifo dentro del círculo (probado primero, con un 78-82% de llenado) empeoró la lectura en vez de mejorarla: el glifo se comía el círculo y el conjunto se veía más apretado, no más fuerte. Lo que sí ayudó, dentro de un ícono monocromo: que el círculo de fondo llegue de borde a borde del lienzo (sin margen) y el glifo quede chico y limpio adentro (~50% de llenado) — la forma que debe pesar es el círculo (la masa grande), no el trazo.
+
+**Para la próxima vez:** si un ícono "se ve chico" al lado de otro en un contexto de tamaño fijo (bandeja de Windows, favicon, badge), medir primero el tamaño real en la captura (bounding box de contenido) antes de asumir que hace falta agrandar algo — casi siempre el tamaño en píxeles ya es igual, y el problema real es peso visual (color/contraste/llenado), que no se arregla agrandando el dibujo adentro de una forma de tamaño fijo.
+
+---
+
+# Scaffolding de prueba dejado "a propósito" en un menú de producción se vuelve ruido confuso apenas el evento real existe
+
+Aplica cuando: se agrega un ítem de prueba/debug a una UI real (no a una pantalla de desarrollo separada) con la intención de sacarlo "cuando exista el flujo real".
+
+Un ítem "Probar notificación" en el menú de la bandeja (con un comentario explícito: "se mantiene hasta que un change futuro lo conecte a un evento real") quedó ahí durante varios changes, después de que el evento real (notificar al vincular una cuenta) ya existiera — nadie volvió a esa nota para sacarlo. El usuario lo marcó como parte de "la UI de la bandeja está confusa" sin señalarlo puntualmente; apareció al revisar el código del menú con ese lente.
+
+**Para la próxima vez:** un comentario que dice "dejar esto hasta que pase X" es una tarea pendiente sin dueño ni fecha — se pierde fácil entre specs distintas. Mejor: anotarlo como ítem de `tasks.md` del change que agrega el evento real ("sacar el ítem de prueba de tal menú"), no solo como comentario en el código.
+
+---
+
+# Un hook de Git generado a mano necesita el shebang como primera línea literal, antes que cualquier otra cosa
+
+Aplica cuando: se genera un script (hook de Git, u otro archivo que Git/el sistema operativo ejecuta vía shebang) agregándole una marca propia al principio para identificarlo después.
+
+Al generar el script de un hook (`pre-commit`) con una marca propia (`# dossier:identity-guard v1`) **antes** de `#!/bin/sh`, Git en Windows fallaba al ejecutar el commit con `error: cannot spawn .git/hooks/pre-commit: No such file or directory` — un mensaje que no menciona nada sobre shebangs, lo que lo hace confuso. La causa: el shebang solo funciona como primera línea _literal_ del archivo (primeros dos bytes `#!`); cualquier cosa antes (aunque sea un comentario válido) rompe la detección del intérprete, y el sistema no sabe con qué ejecutar el script. Se encontró corriendo el hook contra un repo real (`mkdtempSync` + `git init` + commit real) — un test que solo revisara el contenido del script como string no lo habría detectado.
+
+**Para la próxima vez:** cualquier marca/comentario propio en un archivo ejecutable por shebang va **después** de la línea `#!...`, nunca antes. Y en general: un script generado para ser ejecutado por otro programa (no solo leído) necesita al menos un test de integración que lo ejecute de verdad, no solo que compare su contenido.
+
+---
+
+# Un valor "grabado" dentro de un artefacto generado (no releído del store) necesita regenerarse en _cada_ camino que cambie ese valor, no solo en el que lo crea
+
+Aplica cuando: se genera un archivo ejecutable (un hook, un script, una config) que incluye un valor copiado en el momento de generarlo, en vez de leerlo en vivo de donde vive la fuente de verdad.
+
+El hook de `pre-commit`/`pre-push` de la guardia de identidad (S11) graba el email esperado como texto literal en el script al instalarlo (no puede leer `rules.json` en cada commit, es un script de shell). La acción "Aplicar" de un conflicto reasignaba la regla a la cuenta correcta (`rulesStore.pin`) pero nunca volvía a instalar el hook — como `pin()` preserva la guardia activada al reasignar cuenta, el hook seguía ahí, comparando contra el email _viejo_. El mismo commit que "Aplicar" decía resolver se seguía cortando. Lo encontró una revisión en sesión separada (agente sin el historial de la sesión que implementó), no los tests: la ruta de "reasignar cuenta a una carpeta ya con la guardia activa" no la ejercitaba ningún test ni la verificación en vivo (que sí probó instalar/desinstalar, pero no reasignar).
+
+**Para la próxima vez:** cuando un valor queda "horneado" dentro de un artefacto generado en vez de leerse en vivo, listar **todos** los caminos que pueden cambiar ese valor (no solo el que instala por primera vez) y confirmar que cada uno regenera el artefacto — un test de "cambié el valor por este otro camino, ¿el artefacto lo refleja?" habría encontrado esto antes que una revisión manual.
 
 ## Promoción a la carpeta global (`~/sfp/`)
 

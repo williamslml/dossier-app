@@ -5,6 +5,79 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Dossier</title>
     <style>
+      /* Tokens de color (change 05-ajustes): una sola fuente de verdad para
+         que el tema oscuro sea un cambio de variables, no de reglas sueltas
+         por componente. El valor por defecto es el claro de siempre. */
+      :root {
+        --surface-app: #ffffff;
+        --surface-subtle: #fafafa;
+        --surface-muted: #f4f4f5;
+        --surface-overlay: rgba(23, 23, 23, 0.45);
+
+        --border: #eaeaea;
+        --border-strong: #e5e5e5;
+        --border-hover: #d4d4d4;
+
+        --fg: #171717;
+        --fg-subtle: #888888;
+        --fg-faint: #a3a3a3;
+        --fg-muted: #666666;
+        --fg-muted-2: #525252;
+        --fg-muted-3: #52525b;
+        --fg-muted-4: #737373;
+        --fg-inverse: #ffffff;
+
+        --brand-fill: #171717;
+        --brand-fill-hover: #383838;
+        --brand-fill-active: #000000;
+
+        --accent: #0070f3;
+
+        --danger-fg: #e00;
+        --danger-bg: #fff0f0;
+        --danger-fg-2: #d00000;
+        --danger-bg-2: #fff3f3;
+        --danger-border-2: #ffd6d6;
+
+        --status-dot-idle: #a3a3a3;
+        --status-dot-ok: #16a34a;
+      }
+
+      :root[data-theme='oscuro'] {
+        --surface-app: #0a0a0a;
+        --surface-subtle: #141414;
+        --surface-muted: #1f1f1f;
+        --surface-overlay: rgba(0, 0, 0, 0.6);
+
+        --border: #2a2a2a;
+        --border-strong: #2e2e2e;
+        --border-hover: #3a3a3a;
+
+        --fg: #ededed;
+        --fg-subtle: #9a9a9a;
+        --fg-faint: #6b6b6b;
+        --fg-muted: #a1a1a1;
+        --fg-muted-2: #b4b4b4;
+        --fg-muted-3: #b0b0b5;
+        --fg-muted-4: #a3a3a3;
+        --fg-inverse: #0a0a0a;
+
+        --brand-fill: #ededed;
+        --brand-fill-hover: #c7c7c7;
+        --brand-fill-active: #ffffff;
+
+        --accent: #3b9dff;
+
+        --danger-fg: #ff6b6b;
+        --danger-bg: #3a1414;
+        --danger-fg-2: #ff8080;
+        --danger-bg-2: #3a1414;
+        --danger-border-2: #5c2323;
+
+        --status-dot-idle: #6b6b6b;
+        --status-dot-ok: #22c55e;
+      }
+
       * {
         box-sizing: border-box;
         margin: 0;
@@ -21,8 +94,8 @@
       }
 
       body {
-        background-color: #fafafa;
-        background-image: radial-gradient(#e5e5e5 1px, transparent 1px);
+        background-color: var(--surface-subtle);
+        background-image: radial-gradient(var(--border-strong) 1px, transparent 1px);
         background-size: 20px 20px;
         display: flex;
         align-items: center;
@@ -41,13 +114,13 @@
       .app-window {
         width: 390px;
         height: 620px;
-        background-color: #ffffff;
-        color: #171717;
+        background-color: var(--surface-app);
+        color: var(--fg);
         display: flex;
         flex-direction: column;
         overflow: hidden;
         user-select: none;
-        border: 1px solid #eaeaea;
+        border: 1px solid var(--border);
         border-radius: 12px;
         box-shadow:
           0 12px 32px rgba(0, 0, 0, 0.06),
@@ -57,14 +130,31 @@
 
       /* Barra superior */
       .title-bar {
-        height: 44px;
-        background-color: #fafafa;
-        border-bottom: 1px solid #eaeaea;
+        height: 54px;
+        background-color: var(--surface-subtle);
+        border-bottom: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 16px;
         -webkit-app-region: drag;
+      }
+      .title-bar-text {
+        display: flex;
+        flex-direction: column;
+        gap: 1px;
+      }
+      .title-bar-name {
+        font-size: 12.5px;
+        font-weight: 600;
+        color: var(--fg);
+        letter-spacing: -0.01em;
+        line-height: 1.2;
+      }
+      .title-bar-subtitle {
+        font-size: 10.5px;
+        color: var(--fg-subtle);
+        line-height: 1.2;
       }
       .title-bar-left {
         display: flex;
@@ -72,7 +162,7 @@
         gap: 8px;
         font-size: 12.5px;
         font-weight: 600;
-        color: #171717;
+        color: var(--fg);
         letter-spacing: -0.01em;
       }
       .title-bar-right {
@@ -83,9 +173,9 @@
       }
       .btn-header-clone {
         font-size: 11px;
-        background-color: #ffffff;
-        color: #171717;
-        border: 1px solid #e5e5e5;
+        background-color: var(--surface-app);
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
         padding: 3px 9px;
         border-radius: 6px;
         display: inline-flex;
@@ -96,14 +186,14 @@
         transition: all 0.15s ease;
       }
       .btn-header-clone:hover {
-        background-color: #f4f4f5;
-        border-color: #171717;
+        background-color: var(--surface-muted);
+        border-color: var(--fg);
       }
       .vault-badge {
         font-size: 10.5px;
-        background-color: #ffffff;
-        color: #525252;
-        border: 1px solid #e5e5e5;
+        background-color: var(--surface-app);
+        color: var(--fg-muted-2);
+        border: 1px solid var(--border-strong);
         padding: 3px 8px;
         border-radius: 9999px;
         display: inline-flex;
@@ -119,58 +209,14 @@
         flex-direction: column;
         padding: 16px;
         overflow-y: auto;
-        background-color: #ffffff;
+        background-color: var(--surface-app);
+      }
+      .sessions-area {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
       }
 
-      /* Banner de cuenta activa */
-      .active-banner {
-        background-color: #fafafa;
-        border: 1px solid #eaeaea;
-        border-radius: 8px;
-        padding: 12px 14px;
-        margin-bottom: 14px;
-      }
-      .active-banner small {
-        display: block;
-        font-size: 11px;
-        color: #666666;
-        margin-bottom: 6px;
-        font-weight: 500;
-      }
-      .active-banner-main {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 8px;
-      }
-      .active-user-wrap {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        font-size: 13.5px;
-        font-weight: 600;
-        color: #171717;
-        letter-spacing: -0.01em;
-      }
-      .pulse-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: #0070f3;
-        box-shadow: 0 0 0 3px rgba(0, 112, 243, 0.14);
-      }
-      .custom-label-pill {
-        font-size: 11px;
-        background-color: #ffffff;
-        color: #444444;
-        padding: 2px 8px;
-        border-radius: 9999px;
-        border: 1px solid #e5e5e5;
-        display: inline-flex;
-        align-items: center;
-        gap: 5px;
-        font-weight: 500;
-      }
 
       /* Lista de tarjetas de cuentas */
       .account-list {
@@ -179,8 +225,8 @@
         gap: 8px;
       }
       .account-card {
-        background-color: #ffffff;
-        border: 1px solid #eaeaea;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
         border-radius: 8px;
         padding: 10px 12px;
         display: flex;
@@ -190,60 +236,75 @@
         transition: all 0.15s ease;
       }
       .account-card:hover {
-        background-color: #fafafa;
-        border-color: #d4d4d4;
+        background-color: var(--surface-subtle);
+        border-color: var(--border-hover);
       }
       .account-card.selected {
-        border-color: #171717;
-        background-color: #fafafa;
+        border-color: var(--fg);
+        background-color: var(--surface-subtle);
         box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       }
       .account-left {
         display: flex;
         align-items: center;
-        gap: 11px;
+        gap: 10px;
         min-width: 0;
       }
+      .radio-dot {
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        border: 2px solid var(--border-hover);
+        flex-shrink: 0;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .radio-dot.checked {
+        border-color: var(--fg);
+      }
+      .radio-dot.checked::after {
+        content: '';
+        width: 8px;
+        height: 8px;
+        border-radius: 50%;
+        background-color: var(--fg);
+      }
       .avatar {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        background-color: #f4f4f5;
-        border: 1px solid #e4e4e7;
+        width: 32px;
+        height: 32px;
+        border-radius: 50%;
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #171717;
-        flex-shrink: 0;
-      }
-      .account-card.selected .avatar {
-        background-color: #171717;
-        border-color: #171717;
         color: #ffffff;
+        font-size: 11px;
+        font-weight: 600;
+        flex-shrink: 0;
       }
       .account-info {
         min-width: 0;
       }
-      .account-top h4 {
+      .account-info h4 {
         font-size: 13px;
-        color: #171717;
+        color: var(--fg);
         white-space: nowrap;
         overflow: hidden;
         text-overflow: ellipsis;
         font-weight: 600;
         letter-spacing: -0.01em;
-        margin-bottom: 4px;
+        margin-bottom: 2px;
       }
       .account-meta {
         display: flex;
         align-items: center;
         gap: 4px;
         font-size: 11px;
-        color: #666666;
+        color: var(--fg-muted);
       }
       .tag-custom {
-        background-color: #f4f4f5;
-        color: #52525b;
+        background-color: var(--surface-muted);
+        color: var(--fg-muted-3);
         padding: 2px 7px;
         border-radius: 5px;
         font-weight: 500;
@@ -254,7 +315,7 @@
       .icon-action-btn {
         background: transparent;
         border: none;
-        color: #888888;
+        color: var(--fg-subtle);
         cursor: pointer;
         padding: 4px;
         border-radius: 5px;
@@ -264,12 +325,12 @@
         transition: all 0.15s ease;
       }
       .icon-action-btn:hover {
-        color: #171717;
-        background-color: #f4f4f5;
+        color: var(--fg);
+        background-color: var(--surface-muted);
       }
       .icon-action-btn.delete:hover {
-        color: #e00;
-        background-color: #fff0f0;
+        color: var(--danger-fg);
+        background-color: var(--danger-bg);
       }
 
       .account-actions {
@@ -286,17 +347,17 @@
         transition: all 0.15s ease;
       }
       .selected .status-badge {
-        background-color: #171717;
-        color: #ffffff;
+        background-color: var(--brand-fill);
+        color: var(--fg-inverse);
       }
       .account-card:not(.selected) .status-badge {
-        background-color: #ffffff;
-        border: 1px solid #eaeaea;
-        color: #666666;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
+        color: var(--fg-muted);
       }
       .account-card:not(.selected):hover .status-badge {
-        border-color: #d4d4d4;
-        color: #171717;
+        border-color: var(--border-hover);
+        color: var(--fg);
       }
 
       /* Botones de acción principales */
@@ -329,32 +390,22 @@
         opacity: 0.45;
         cursor: not-allowed;
       }
-      .btn-gh {
-        background-color: #171717;
-        color: #ffffff;
-        border: 1px solid #171717;
-      }
-      .btn-gh:hover:not(:disabled) {
-        background-color: #383838;
-        border-color: #383838;
-      }
-      .btn-gl {
+      /* GitHub/GitLab/Clonar: mismo estilo los tres — fondo blanco fijo,
+         nunca reactivo al tema. Son botones de identidad de proveedor (como
+         "Sign in with GitHub" en cualquier app), no deberían cambiar con la
+         preferencia de tema de quien los mira. */
+      .btn-gh,
+      .btn-gl,
+      .btn-clone-full {
         background-color: #ffffff;
         color: #171717;
         border: 1px solid #eaeaea;
       }
-      .btn-gl:hover:not(:disabled) {
-        background-color: #fafafa;
-        border-color: #171717;
-      }
-      .btn-clone-full {
-        background-color: #fafafa;
-        color: #171717;
-        border: 1px solid #e5e5e5;
-      }
+      .btn-gh:hover:not(:disabled),
+      .btn-gl:hover:not(:disabled),
       .btn-clone-full:hover:not(:disabled) {
-        background-color: #f4f4f5;
-        border-color: #171717;
+        background-color: #fafafa;
+        border-color: #d4d4d4;
       }
 
       /* Notificación discreta de estado */
@@ -363,32 +414,51 @@
         padding-top: 12px;
       }
       .toast-box {
-        background-color: #fafafa;
-        border: 1px solid #eaeaea;
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border);
         border-radius: 6px;
         padding: 8px 11px;
         font-size: 11px;
-        color: #525252;
+        color: var(--fg-muted-2);
         display: flex;
         align-items: center;
         gap: 8px;
         line-height: 1.4;
       }
       .toast-box svg {
-        color: #0070f3;
+        color: var(--accent);
       }
 
       /* Pie de aplicación */
       .app-footer {
         height: 30px;
-        background-color: #fafafa;
-        border-top: 1px solid #eaeaea;
+        background-color: var(--surface-subtle);
+        border-top: 1px solid var(--border);
         display: flex;
         align-items: center;
         justify-content: space-between;
         padding: 0 16px;
         font-size: 10.5px;
-        color: #737373;
+        color: var(--fg-muted-4);
+      }
+      .footer-helper {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .footer-status {
+        display: flex;
+        align-items: center;
+        gap: 5px;
+      }
+      .status-dot {
+        width: 6px;
+        height: 6px;
+        border-radius: 50%;
+        background-color: var(--status-dot-idle);
+      }
+      .status-dot--ok {
+        background-color: var(--status-dot-ok);
       }
 
       /* Estado vacío (S5.3 — nuevo, el prototipo no lo contemplaba) */
@@ -398,11 +468,415 @@
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        color: #888888;
-        font-size: 12px;
+        gap: 10px;
+        color: var(--fg);
+        font-size: 13px;
+        font-weight: 500;
         text-align: center;
         padding: 24px;
+        border: 1px dashed var(--border-hover);
+        border-radius: 10px;
+      }
+      .empty-state-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background-color: var(--surface-muted);
+        color: var(--fg-faint);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .empty-state-hint {
+        font-size: 11.5px;
+        font-weight: 400;
+        color: var(--fg-muted);
+        margin-top: -4px;
+      }
+      .sessions-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        font-size: 12px;
+        font-weight: 600;
+        color: var(--fg);
+        margin-bottom: 8px;
+      }
+      .sessions-count {
+        font-weight: 500;
+        color: var(--fg);
+      }
+
+      /* Pantalla de Ajustes (change 05-ajustes) */
+      .ajustes-screen {
+        gap: 20px;
+      }
+      .settings-section {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+      }
+      .settings-section h3 {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--fg-subtle);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+      }
+      .settings-section--muted h3 {
+        color: var(--fg-subtle);
+      }
+      .settings-section--muted .settings-about {
+        color: var(--fg-faint);
+      }
+      .section-header {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .badge {
+        font-size: 10.5px;
+        font-weight: 500;
+        color: var(--fg-muted);
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border);
+        border-radius: 9999px;
+        padding: 2px 8px;
+        line-height: 1.5;
+      }
+      .theme-options {
+        display: flex;
+        flex-direction: row;
+        gap: 8px;
+      }
+      .theme-option {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 14px 8px;
+        font-size: 12.5px;
+        color: var(--fg);
+        cursor: pointer;
+        text-align: center;
+        transition: all 0.15s ease;
+      }
+      .theme-option:hover {
+        background-color: var(--surface-subtle);
+        border-color: var(--border-hover);
+      }
+      .theme-option.selected {
+        background-color: var(--brand-fill);
+        border-color: var(--brand-fill);
+        color: var(--fg-inverse);
+        font-weight: 600;
+      }
+      .settings-group {
+        display: flex;
+        flex-direction: column;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+      .settings-toggle-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 10px 12px;
+        font-size: 13px;
+        color: var(--fg);
+        cursor: pointer;
+      }
+      .settings-group .settings-toggle-row,
+      .settings-group .shortcut-row {
+        border-radius: 0;
+      }
+      .settings-group > * + * {
+        border-top: 1px solid var(--border);
+      }
+      .shortcut-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 10px 12px;
+      }
+      .shortcut-row-text {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+      .shortcut-row-title {
+        font-size: 13px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .shortcut-row-hint {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+      }
+      .keycaps {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        flex-shrink: 0;
+      }
+      .keycaps span {
+        color: var(--fg-faint);
+        font-size: 11px;
+      }
+      .key {
+        font-size: 11px;
+        font-weight: 600;
+        color: var(--fg);
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border-hover);
+        border-radius: 5px;
+        padding: 3px 7px;
+      }
+      .about-row {
+        display: flex;
+        align-items: baseline;
+        justify-content: space-between;
+        /* Siempre pegado abajo, justo encima del footer — no al final del
+           contenido si alcanza a dejar hueco (p. ej. sin credenciales
+           huérfanas que mostrar). El `gap` de `.ajustes-screen` ya separa
+           del elemento anterior cuando no hay hueco de sobra. */
+        margin-top: auto;
+      }
+      .about-row-label {
+        font-size: 12.5px;
+        color: var(--fg-muted);
+      }
+      .about-row-value {
+        font-size: 12.5px;
+        color: var(--fg);
+      }
+      .toggle-switch {
+        appearance: none;
+        width: 34px;
+        height: 20px;
+        border-radius: 9999px;
+        background-color: var(--border-hover);
+        position: relative;
+        cursor: pointer;
+        flex-shrink: 0;
+        transition: background-color 0.15s ease;
+      }
+      .toggle-switch::after {
+        content: '';
+        position: absolute;
+        top: 2px;
+        left: 2px;
+        width: 16px;
+        height: 16px;
+        border-radius: 50%;
+        background-color: var(--surface-app);
+        transition: transform 0.15s ease;
+      }
+      .toggle-switch:checked {
+        background-color: var(--brand-fill);
+      }
+      .toggle-switch:checked::after {
+        transform: translateX(14px);
+      }
+      .settings-about {
+        font-size: 12px;
+        color: var(--fg-muted);
+      }
+      .pins-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+      .pin-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 8px 10px;
+      }
+      .pin-info {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+        min-width: 0;
+      }
+      .pin-path {
+        font-size: 12px;
+        color: var(--fg);
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .pin-account {
+        font-size: 11px;
+        color: var(--fg-muted);
+      }
+      .pin-add-form {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        padding: 10px;
+      }
+      .pin-add-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 8px;
+      }
+      .pin-add-actions button {
+        height: 30px;
+        padding: 0 12px;
+        border-radius: 6px;
+        font-size: 12px;
+        font-weight: 500;
+        cursor: pointer;
+      }
+
+      /* Diálogos de vincular cuenta (nuevo, no estaba en el prototipo) */
+      .dialog-overlay {
+        position: absolute;
+        inset: 0;
+        background-color: var(--surface-overlay);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 16px;
+        z-index: 10;
+      }
+      .dialog-card {
+        width: 100%;
+        max-width: 300px;
+        background-color: var(--surface-app);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow:
+          0 12px 32px rgba(0, 0, 0, 0.12),
+          0 2px 6px rgba(0, 0, 0, 0.06);
+        padding: 18px;
+        display: flex;
+        flex-direction: column;
+        gap: 14px;
+      }
+      .dialog-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+      }
+      .dialog-title {
+        font-size: 13.5px;
+        font-weight: 600;
+        color: var(--fg);
+      }
+      .dialog-form {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+      .dialog-field {
+        display: flex;
+        flex-direction: column;
+        gap: 5px;
+      }
+      .dialog-field label {
+        font-size: 11.5px;
+        color: var(--fg-muted-2);
+        font-weight: 500;
+      }
+      .dialog-input {
+        height: 32px;
+        padding: 0 10px;
+        border: 1px solid var(--border-strong);
+        border-radius: 6px;
+        font-size: 12.5px;
+        color: var(--fg);
+        background-color: var(--surface-subtle);
+      }
+      .dialog-input:focus {
+        outline: none;
+        border-color: var(--fg);
+        background-color: var(--surface-app);
+      }
+      .dialog-error {
+        font-size: 11.5px;
+        color: var(--danger-fg-2);
+        background-color: var(--danger-bg-2);
+        border: 1px solid var(--danger-border-2);
+        border-radius: 6px;
+        padding: 8px 10px;
+      }
+      .conflict-list {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+        margin-bottom: 12px;
+      }
+      .conflict-card {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .conflict-card p {
+        line-height: 1.4;
+      }
+      .dialog-hint {
+        font-size: 11.5px;
+        color: var(--fg-muted);
+        text-align: center;
+      }
+      .dialog-link-button {
+        background: none;
+        border: none;
+        padding: 0;
+        font: inherit;
+        font-weight: 500;
+        color: var(--fg);
+        text-decoration: underline;
+        cursor: pointer;
+      }
+      .btn-primary {
+        background-color: var(--brand-fill);
+        color: var(--fg-inverse);
+        border: none;
+      }
+      .btn-primary:hover:not(:disabled) {
+        background-color: var(--brand-fill-active);
+      }
+      .btn-secondary {
+        background-color: var(--surface-app);
+        color: var(--fg);
+        border: 1px solid var(--border-strong);
+      }
+      .btn-secondary:hover {
+        background-color: var(--surface-muted);
+      }
+      .device-code-row {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 8px;
+      }
+      .device-code {
+        font-size: 21px;
+        font-weight: 600;
+        letter-spacing: 0.06em;
+        color: var(--fg);
+        background-color: var(--surface-subtle);
+        border: 1px solid var(--border-strong);
+        border-radius: 8px;
+        padding: 9px 16px;
       }
     </style>
   </head>
@@ -473,6 +947,110 @@
         <path d="m6 6 12 12" />
       </symbol>
       <symbol
+        id="icon-arrow-left"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="m12 19-7-7 7-7" />
+        <path d="M19 12H5" />
+      </symbol>
+      <symbol
+        id="icon-minus"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M5 12h14" />
+      </symbol>
+      <symbol
+        id="icon-settings"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path
+          d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"
+        />
+        <circle cx="12" cy="12" r="3" />
+      </symbol>
+      <symbol
+        id="icon-lock"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="18" height="11" x="3" y="11" rx="2" ry="2" />
+        <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+      </symbol>
+      <symbol
+        id="icon-sun"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2" />
+        <path d="M12 20v2" />
+        <path d="m4.93 4.93 1.41 1.41" />
+        <path d="m17.66 17.66 1.41 1.41" />
+        <path d="M2 12h2" />
+        <path d="M20 12h2" />
+        <path d="m6.34 17.66-1.41 1.41" />
+        <path d="m19.07 4.93-1.41 1.41" />
+      </symbol>
+      <symbol
+        id="icon-moon"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
+      </symbol>
+      <symbol
+        id="icon-monitor"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="20" height="14" x="2" y="3" rx="2" />
+        <line x1="8" x2="16" y1="21" y2="21" />
+        <line x1="12" x2="12" y1="17" y2="21" />
+      </symbol>
+      <symbol
+        id="icon-user"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <path d="M19 21v-2a4 4 0 0 0-4-4H9a4 4 0 0 0-4 4v2" />
+        <circle cx="12" cy="7" r="4" />
+      </symbol>
+      <symbol
         id="icon-trash"
         viewBox="0 0 24 24"
         fill="none"
@@ -505,6 +1083,18 @@
         stroke-linejoin="round"
       >
         <polyline points="20 6 9 17 4 12" />
+      </symbol>
+      <symbol
+        id="icon-copy"
+        viewBox="0 0 24 24"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      >
+        <rect width="14" height="14" x="8" y="8" rx="2" ry="2" />
+        <path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2" />
       </symbol>
       <symbol
         id="icon-external"

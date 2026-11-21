@@ -1,9 +1,15 @@
-export function Footer() {
+export function Footer({ synced }: { synced: boolean }) {
   return (
     <div class="app-footer">
-      <span>Credential Helper</span>
-      <span title="Funciona con cualquier editor o terminal que use Git — esta es solo una muestra">
-        VS Code · Zed · Cursor · Warp · Claude y más
+      <span class="footer-helper">
+        <svg width="11" height="11">
+          <use href="#icon-lock" />
+        </svg>
+        Windows Credential Manager
+      </span>
+      <span class="footer-status">
+        <span class={`status-dot ${synced ? 'status-dot--ok' : ''}`} aria-hidden="true" />
+        {synced ? 'Sincronizado' : 'Esperando credencial'}
       </span>
     </div>
   )

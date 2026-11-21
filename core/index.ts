@@ -8,11 +8,30 @@ export type {
   GitCredentialAction,
   RunGitCredentialOptions,
 } from './features/git-credential/git-credential.ts'
-export { runGitCredential } from './features/git-credential/git-credential.ts'
+export { listGithubAccounts, runGitCredential } from './features/git-credential/git-credential.ts'
 
-export { writeIncludeIf, writeProfileConfig } from './features/gitconfig/gitconfig.ts'
+export {
+  normalizeGitdirPattern,
+  renderIncludeIfBlock,
+  writeIncludeIf,
+  writeProfileConfig,
+} from './features/gitconfig/gitconfig.ts'
+export {
+  ensureActiveInclude,
+  ensureBackup,
+  removeIncludeIfBlock,
+  updateRegion,
+} from './features/gitconfig/region.ts'
 
-export type { Account, AccountsStore } from './features/accounts/accounts.ts'
+export {
+  getActiveConfigPath,
+  getProfilePath,
+  setActiveAccount,
+  writeAccountProfile,
+  writeSigningKey,
+} from './features/identity/identity.ts'
+
+export type { Account, AccountsStore, RemovedAccountRef } from './features/accounts/accounts.ts'
 export { createAccountsStore } from './features/accounts/accounts.ts'
 
 export type { Rule, RulesStore } from './features/rules/rules.ts'
@@ -28,3 +47,25 @@ export { createStateStore } from './features/state/state.ts'
 
 export type { Brand } from './features/brand/brand.ts'
 export { brand } from './features/brand/brand.ts'
+
+export {
+  linkGithubAccount,
+  linkGitlabAccount,
+  saveLinkedAccount,
+} from './features/link-account/link-account.ts'
+
+export type { Settings, SettingsStore, Theme } from './features/settings/settings.ts'
+export { createSettingsStore } from './features/settings/settings.ts'
+
+export type { OrphanedCredential } from './features/credential-maintenance/credential-maintenance.ts'
+export { findOrphans } from './features/credential-maintenance/credential-maintenance.ts'
+
+export type { ConflictRecord, HookName } from './features/identity-guard/identity-guard.ts'
+export {
+  buildHookScript,
+  clearConflict,
+  getConflictPath,
+  installHook,
+  readConflicts,
+  uninstallHook,
+} from './features/identity-guard/identity-guard.ts'

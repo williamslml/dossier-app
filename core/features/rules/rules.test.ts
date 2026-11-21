@@ -62,4 +62,34 @@ describe('rules (M3)', () => {
     const reread = createRulesStore({ cwd })
     expect(reread.list()).toEqual([rule])
   })
+
+  it('una regla nueva empieza sin guardia de identidad activada (S11.1)', () => {
+    const rule = store.pin('C:/work/a', 'acc-1')
+    expect(rule.enforced).toBe(false)
+  })
+
+  it('activa la guardia de identidad de una regla existente (S11.1)', () => {
+    store.pin('C:/work/a', 'acc-1')
+    const updated = store.setEnforced('C:/work/a', true)
+    expect(updated.enforced).toBe(true)
+    expect(store.list()).toEqual([updated])
+  })
+
+  it('desactivarla de nuevo vuelve a dejarla en false (S11.1)', () => {
+    store.pin('C:/work/a', 'acc-1')
+    store.setEnforced('C:/work/a', true)
+    const updated = store.setEnforced('C:/work/a', false)
+    expect(updated.enforced).toBe(false)
+  })
+
+  it('setEnforced sobre una carpeta no fijada es un error (no hay regla que activar)', () => {
+    expect(() => store.setEnforced('C:/work/nunca-fijada', true)).toThrow()
+  })
+
+  it('re-fijar una carpeta ya enforced no le resetea el campo (M3.2 + S11.1)', () => {
+    store.pin('C:/work/a', 'acc-1')
+    store.setEnforced('C:/work/a', true)
+    const replaced = store.pin('C:/work/a', 'acc-2')
+    expect(replaced.enforced).toBe(true)
+  })
 })

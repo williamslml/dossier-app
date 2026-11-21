@@ -25,13 +25,19 @@ const glyph = `
 `
 
 function svg(size) {
-  // El glifo original es un viewBox 24x24; se escala a ~60% del lienzo y se
-  // centra, dejando margen para que no se vea apretado en tamaños chicos.
-  const scale = (size * 0.6) / 24
+  // El glifo original es un viewBox 24x24; se escala a ~52% del lienzo y se
+  // centra. Hallazgo real, comparado lado a lado con otro ícono de bandeja
+  // (Serena, un círculo de color sólido): la forma que tiene que leerse
+  // grande y con peso es el círculo de fondo (ya ocupa el lienzo entero,
+  // de borde a borde), no el glifo — un glifo grande se come el círculo y
+  // termina pareciendo más chico/apretado, no más fuerte. Achicar el glifo
+  // (antes llegó a 82%) deja que el círculo sea la masa visual dominante,
+  // con el trazo como un detalle limpio adentro, no al revés.
+  const scale = (size * 0.52) / 24
   const offset = (size - 24 * scale) / 2
   return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" xmlns="http://www.w3.org/2000/svg">
     <circle cx="${size / 2}" cy="${size / 2}" r="${size / 2}" fill="#171717" />
-    <g transform="translate(${offset} ${offset}) scale(${scale})" fill="none" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round">
+    <g transform="translate(${offset} ${offset}) scale(${scale})" fill="none" stroke="#ffffff" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round">
       ${glyph}
     </g>
   </svg>`
@@ -46,8 +52,10 @@ async function renderPng(size) {
 const icoSizes = [16, 24, 32, 48, 64, 128, 256]
 
 async function main() {
-  // Ícono de bandeja (electron-menubar `icon`): PNG simple, Windows no
-  // necesita un .ico para el tray.
+  // Ícono para notificaciones (src/main/notify.ts): PNG simple, es lo que
+  // espera la API de Notification. El tray en sí usa app-icon.ico (ver
+  // src/main/index.ts) — Windows sí se beneficia de un .ico multi-tamaño
+  // para la bandeja, a pesar de lo que decía este comentario antes.
   const trayPng = await renderPng(32)
   writeFileSync(`${resourcesDir}/tray-icon.png`, trayPng)
 

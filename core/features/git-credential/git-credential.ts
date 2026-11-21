@@ -8,10 +8,33 @@ export interface RunGitCredentialOptions {
 }
 
 /**
- * Protocolo `git credential` (approve/fill/reject) vía child_process — no es
- * algo que `simple-git` envuelva (design.md R3). No toca el config global
- * real del usuario: usa `-c` para desactivar cualquier interacción
- * (docs/adr/0004-modelo-de-credenciales-e-identidad.md).
+ * Hallazgo real (docs/lessons/README.md): `git credential <acción>` (el
+ * despachador genérico de git hacia el credential helper configurado)
+ * falla para `github.com` con `fill` — GCM tiene su propio proveedor para
+ * ese host y el despachador genérico no lo resuelve bien, aunque la
+ * credencial esté guardada de verdad. Invocar el binario de GCM
+ * directamente (`git credential-manager store/get/erase`, mismo protocolo
+ * por `stdin`) sí funciona, para cualquier host. Se usa siempre esta vía,
+ * no solo para GitHub — es más simple que tener dos caminos.
+ */
+const GCM_ACTION: Record<GitCredentialAction, string> = {
+  approve: 'store',
+  fill: 'get',
+  reject: 'erase',
+}
+
+/** Construye los argumentos de `git credential-manager <acción>` — función
+ * pura, separada de `runGitCredential` para poder probarla sin lanzar un
+ * proceso. */
+export function buildGitCredentialArgs(action: GitCredentialAction): string[] {
+  return ['credential-manager', GCM_ACTION[action], '--no-ui']
+}
+
+/**
+ * Protocolo de credenciales de Git (approve/fill/reject, aquí mapeado a los
+ * comandos nativos de GCM store/get/erase) vía child_process — no es algo
+ * que `simple-git` envuelva (design.md R3). No toca el config global real
+ * del usuario (docs/adr/0004-modelo-de-credenciales-e-identidad.md).
  */
 export function runGitCredential(
   action: GitCredentialAction,
@@ -21,21 +44,10 @@ export function runGitCredential(
   const timeoutMs = options.timeoutMs ?? 5_000
 
   return new Promise((resolve, reject) => {
-    const child = spawn(
-      'git',
-      [
-        '-c',
-        'credential.interactive=false',
-        '-c',
-        'credential.guiPrompt=false',
-        'credential',
-        action,
-      ],
-      {
-        env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
-        stdio: ['pipe', 'pipe', 'pipe'],
-      },
-    )
+    const child = spawn('git', buildGitCredentialArgs(action), {
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      stdio: ['pipe', 'pipe', 'pipe'],
+    })
 
     let stdout = ''
     let stderr = ''
@@ -79,6 +91,51 @@ export function runGitCredential(
         .join('\n') + '\n\n'
     child.stdin.write(body)
     child.stdin.end()
+  })
+}
+
+/** S9.1 (05-ajustes): `git-credential-manager github list` imprime un
+    username por línea — verificado contra el binario real (`--help`) y
+    evidencia pública de su salida (docs/specs/.../05-ajustes/design.md).
+    Función pura, separada del spawn, para poder probarla sin GCM real. */
+export function parseGithubListOutput(stdout: string): string[] {
+  return stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+/** Lista las cuentas de GitHub que GCM ya conoce — no hay equivalente para
+    GitLab ni otros hosts (sin grupo de proveedor propio en GCM). */
+export function listGithubAccounts(): Promise<string[]> {
+  return new Promise((resolve, reject) => {
+    const child = spawn('git', ['credential-manager', 'github', 'list', '--no-ui'], {
+      env: { ...process.env, GIT_TERMINAL_PROMPT: '0' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    })
+
+    let stdout = ''
+    let stderr = ''
+
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString('utf8')
+    })
+    child.stderr.on('data', (chunk: Buffer) => {
+      stderr += chunk.toString('utf8')
+    })
+
+    child.on('error', reject)
+    child.on('close', (code) => {
+      if (code !== 0) {
+        reject(
+          new Error(
+            `git credential-manager github list salió con código ${code}: ${stderr.trim()}`,
+          ),
+        )
+        return
+      }
+      resolve(parseGithubListOutput(stdout))
+    })
   })
 }
 
