@@ -278,6 +278,24 @@ El hook de `pre-commit`/`pre-push` de la guardia de identidad (S11) graba el ema
 
 **Para la próxima vez:** cuando un valor queda "horneado" dentro de un artefacto generado en vez de leerse en vivo, listar **todos** los caminos que pueden cambiar ese valor (no solo el que instala por primera vez) y confirmar que cada uno regenera el artefacto — un test de "cambié el valor por este otro camino, ¿el artefacto lo refleja?" habría encontrado esto antes que una revisión manual.
 
+---
+
+# `GIT_TERMINAL_PROMPT=0` no alcanza solo para que Git nunca pida credenciales de forma interactiva — GCM tiene su propio interruptor aparte
+
+Aplica cuando: se invoca `git` (clone, fetch, push, lo que sea que pueda necesitar autenticación) y hace falta que nunca quede esperando una respuesta interactiva.
+
+Al construir `cloneRepo` (07-quick-clone) se asumió que `GIT_TERMINAL_PROMPT=0` (ya usado en `core/features/git-credential` para `approve`/`fill`/`reject`) alcanzaba para que nunca quedara colgado esperando un prompt. Un test real (clonar contra un host sin credencial cacheada) se colgó igual 20 segundos — ese env var apaga el prompt de *Git*, pero el prompt de *GCM* (su propia ventana/CLI interactivo cuando no puede resolver la credencial en silencio) lo controlan dos config aparte: `credential.interactive=false` y `credential.guiPrompt=false`. `docs/adr/0004-modelo-de-credenciales-e-identidad.md` ya documentaba las tres juntas como la receta completa (punto 3) — se habían implementado las tres para `git-credential.ts`, pero al escribir código nuevo que también invoca Git con necesidad de credenciales, se copió solo la primera.
+
+**Para la próxima vez:** cualquier invocación nueva de `git` que pueda necesitar una credencial (clone, fetch, push, lo que sea) necesita las tres, no solo `GIT_TERMINAL_PROMPT=0` — y conviene *probarlo* contra un caso real que fuerce el prompt (un host sin credencial cacheada), no asumir que alcanza porque "ya se usa en otro lado del proyecto". Un ADR que ya documenta la receta completa no sirve si el código nuevo solo copia una parte de memoria.
+
+---
+
+# El plugin de seguridad de `simple-git` bloquea `EDITOR` si se le pasa el `process.env` completo vía `.env(...)`
+
+Aplica cuando: se usa `simple-git` y hace falta agregar una variable de entorno a la invocación (p. ej. `GIT_TERMINAL_PROMPT=0`).
+
+Llamar `.env({ ...process.env, GIT_TERMINAL_PROMPT: '0' })` (para agregar una variable sin perder el resto del entorno heredado) disparó el error "Use of 'EDITOR' is not permitted without enabling allowUnsafeEditor" — un plugin de seguridad propio de `simple-git` que revisa el objeto pasado a `.env(...)` y bloquea si contiene `EDITOR` (común en cualquier shell de desarrollo), para evitar que una operación de Git intente abrir un editor interactivo sin que el código lo espere. No hace falta pelear contra esto ni habilitar `allowUnsafeEditor`: usar la sobrecarga de un solo par clave/valor (`.env('GIT_TERMINAL_PROMPT', '0')`) evita el chequeo por completo — `simple-git` ya hereda `process.env` del proceso padre por sí solo, no hace falta spreadearlo a mano.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

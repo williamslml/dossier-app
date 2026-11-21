@@ -274,6 +274,16 @@ ipcMain.handle(IPC.cloneRepo, async (_event, payload: unknown) => {
   const knownHosts = [...new Set(accountsStore.list().map((a) => a.host))]
   validateCloneUrl(url, knownHosts)
 
+  // Hallazgo de revisión: validateCloneUrl solo confirma que el host de la
+  // URL tiene ALGUNA cuenta vinculada, nunca que sea la MISMA que accountId
+  // — ese filtro vivía solo del lado del cliente (CloneDialog.tsx). Sin
+  // este chequeo acá, un accountId de otro host dejaría el override de
+  // credencial sin efecto (Git nunca lo consulta para un host distinto) y
+  // el Auto-Pin fijaría la carpeta a la cuenta equivocada.
+  if (new URL(url).host !== account.host.toLowerCase()) {
+    throw new Error('La cuenta elegida no es del mismo host que la URL.')
+  }
+
   const overlap = findOverlap(rulesStore.list(), destPath)
   if (overlap) throw new FolderOverlapError(destPath, overlap.path)
 

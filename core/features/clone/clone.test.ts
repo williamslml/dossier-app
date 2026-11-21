@@ -42,6 +42,35 @@ describe('validateCloneUrl (Q2)', () => {
   it('rechaza algo que ni siquiera parsea como URL', () => {
     expect(() => validateCloneUrl('no-es-una-url', knownHosts)).toThrow(InvalidCloneUrlError)
   })
+
+  // Hallazgo de revisión: una URL con credenciales embebidas pasaba la
+  // validación (el host post-"@" es el real, conocido) y se le pasaba tal
+  // cual a `git clone` como argumento de línea de comandos — expone el
+  // secreto en el argv del proceso mientras dura el clone (visible por
+  // Administrador de Tareas a otros procesos de la sesión), justo lo que
+  // ADR 0006 prohíbe para tokens.
+  it('rechaza una URL con usuario embebido (https://usuario@host/...)', () => {
+    expect(() => validateCloneUrl('https://usuario@github.com/user/repo.git', knownHosts)).toThrow(
+      InvalidCloneUrlError,
+    )
+  })
+
+  it('rechaza una URL con usuario y contraseña/token embebidos', () => {
+    expect(() =>
+      validateCloneUrl('https://usuario:ghp_token123@github.com/user/repo.git', knownHosts),
+    ).toThrow(InvalidCloneUrlError)
+  })
+
+  // Hallazgo de revisión: `new URL(url).host` siempre viene en minúsculas,
+  // pero el host guardado de una cuenta (sobre todo GitLab autoalojado, el
+  // usuario lo tipea a mano al vincular, sin normalizar) podría no estarlo
+  // — un host legítimo no debería rechazarse solo porque se guardó con
+  // otras mayúsculas/minúsculas que la URL.
+  it('acepta un host conocido aunque se haya guardado con otras mayúsculas/minúsculas', () => {
+    expect(() =>
+      validateCloneUrl('https://gitlab.ejemplo.com/user/repo.git', ['GitLab.Ejemplo.com']),
+    ).not.toThrow()
+  })
 })
 
 // Q1.3 (escenario verificable de requirements.md): integración real, sin
@@ -81,4 +110,35 @@ describe('cloneRepo (Q1), integración real con Git', () => {
 
     expect(existsSync(join(destPath, '.git'))).toBe(false)
   })
+})
+
+// Hallazgo de revisión: `cloneRepo` no desactivaba la interactividad de Git
+// (a diferencia de `core/features/git-credential`, que sí lo hace para
+// approve/fill/reject) — si GCM no puede resolver la credencial en
+// silencio, Git podía quedar esperando un prompt para siempre, con el
+// `invoke` de IPC colgado indefinidamente (ADR 0004/0006: nunca interactivo,
+// nunca silencioso de más).
+describe('cloneRepo nunca espera un prompt interactivo (hallazgo de revisión)', () => {
+  let destPath: string
+
+  beforeEach(() => {
+    destPath = join(mkdtempSync(join(tmpdir(), 'sfp-clone-noprompt-')), 'repo')
+  })
+
+  it('contra un host real que pide autenticación y sin credencial cacheada, falla rápido en vez de colgarse', async () => {
+    const start = Date.now()
+    // gitlab.com (no el host de ninguna cuenta vinculada en este
+    // proyecto, `git.innv.attach.group` sí lo es) — sin credencial en
+    // GCM para este host, un repo privado/inexistente fuerza a Git a
+    // pedir autenticación.
+    await expect(
+      cloneRepo('https://gitlab.com/sfp-test-no-deberia-existir-nunca/repo.git', destPath, {
+        host: 'gitlab.com',
+        username: 'nadie',
+      }),
+    ).rejects.toThrow()
+    // Si GIT_TERMINAL_PROMPT no estuviera en 0, esto se quedaría
+    // esperando una terminal que nunca va a responder.
+    expect(Date.now() - start).toBeLessThan(15_000)
+  }, 20_000)
 })

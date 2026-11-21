@@ -5,7 +5,7 @@
 ## 1. `core/features/clone/` — validación + clone (Q1, Q2) — TDD
 
 - [x] RED/GREEN: `validateCloneUrl` — tabla de casos válidos/inválidos (Q2.1/Q2.2)
-- [x] RED/GREEN: `cloneRepo` — test de integración real (sin mockear Git). **Decisión tomada al implementar:** contra un repo bare *local* (no github.com) — prueba la mecánica real del clone (incluido el `-c credential.*`) sin depender de la red, mismo criterio que el resto de la suite (nunca una API remota real en los tests automatizados; sí se probó contra github.com real en la verificación en vivo, sección 6)
+- [x] RED/GREEN: `cloneRepo` — test de integración real (sin mockear Git). **Decisión tomada al implementar:** contra un repo bare _local_ (no github.com) — prueba la mecánica real del clone (incluido el `-c credential.*`) sin depender de la red, mismo criterio que el resto de la suite (nunca una API remota real en los tests automatizados; sí se probó contra github.com real en la verificación en vivo, sección 6)
 - [x] Wire en `core/index.ts`
 
 ## 2. `core/features/rules/` — chequeo de solapamiento reusable (Q5)
@@ -38,10 +38,20 @@
 - [x] Verificación en vivo (CDP/DOM): diálogo abre, campos en el orden correcto; filtro de cuentas por host confirmado con tres casos (host con una cuenta, sin ninguna cuenta, cambio de URL)
 - [x] Verificación en vivo con un repo real (`https://github.com/octocat/Hello-World.git`, a través de todo el camino de IPC, no solo `core`): clonado real hacia una carpeta temporal vacía, confirmado con `git remote -v`/`git log` reales; quedó fijado a la cuenta elegida (`enforced: false`). Clonar hacia una subcarpeta de esa misma carpeta se rechazó con `FolderOverlapError` antes de tocar la red; una URL `ssh://` se rechazó antes de llegar a Git. Carpeta y regla limpiadas después.
 
-## 7. Cierre del change
+## 7. Revisión en sesión separada (señal de alto riesgo)
+
+**Hecha** — agente sin el historial de esta sesión, a partir de spec + diff. Tres hallazgos importantes, todos corregidos (ver requirements.md Q8 para el detalle completo):
+
+- [x] Q8.1: `cloneRepo` no desactivaba la interactividad de Git/GCM (confirmado real: un test se colgó 20s sin el fix) — agregado `GIT_TERMINAL_PROMPT=0` + `credential.interactive=false` + `credential.guiPrompt=false` + timeout de bloqueo
+- [x] Q8.2: el handler no validaba que la cuenta coincidiera con el host de la URL — agregado el chequeo
+- [x] Q8.3: `validateCloneUrl` no rechazaba URLs con credenciales embebidas (`user:pass@host`) — agregado el rechazo
+- [x] Q8.4 (menor): `CloneDialog` perdía el error si se cerraba mientras clonaba — ahora no se puede cerrar hasta que termine
+- [x] Q8.5 (menor): comparación de host sensible a mayúsculas/minúsculas — normalizada
+- [x] Re-verificado en vivo tras los fixes: el flujo completo (clonar, rechazo de solapamiento, rechazo de URL inválida) sigue funcionando igual
+
+## 8. Cierre del change
 
 - [ ] Criterio de éxito de `proposal.md` verificado y anotado acá
 - [ ] Lecciones anotadas en `docs/lessons/README.md` si algo no obvio ocurrió
-- [ ] Revisión en sesión separada (señal de alto riesgo) antes de mergear
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación

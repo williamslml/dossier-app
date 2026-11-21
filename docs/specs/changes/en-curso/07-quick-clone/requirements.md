@@ -56,6 +56,21 @@ Ver `proposal.md` para el porqué, el alcance completo y los riesgos. Acá, los 
 
 **Escenario verificable:** verificación en vivo — el botón ya no tiene el atributo `disabled` ni el tooltip "Próximamente".
 
+## Q8 — Hallazgos de la revisión independiente, corregidos
+
+Revisión en sesión separada (agente sin el historial de la sesión que implementó, como pide `CLAUDE.md` para esta señal de alto riesgo). Tres hallazgos importantes sobre la superficie de credenciales/seguridad, corregidos:
+
+- **Q8.1** `cloneRepo` no desactivaba la interactividad de Git/GCM — a diferencia de `core/features/git-credential` (que sí lo hace para `approve`/`fill`/`reject`), podía quedarse esperando un prompt para siempre si GCM no resolvía la credencial en silencio, sin ningún timeout. **Confirmado real, no hipotético:** un test contra un host sin credencial cacheada se colgó de verdad (20s, cortado por el timeout del test). **Fix:** `GIT_TERMINAL_PROMPT=0` (como ya hacía `git-credential.ts`) **más** `credential.interactive=false`/`credential.guiPrompt=false` (ADR 0004 punto 3 completo, no solo la primera parte — el primer env var por sí solo no alcanzó, confirmado por el mismo test), más un timeout de bloqueo (`simple-git`'s `timeout.block`, mata el proceso si no hay salida nueva en 30s — no un timeout de duración total, que cortaría un clone lento pero activo).
+- **Q8.2** El handler de `IPC.cloneRepo` validaba que el host de la URL tuviera _alguna_ cuenta vinculada (Q2.2), pero nunca que fuera la _misma_ cuenta que `accountId` — ese filtro vivía solo del lado del cliente (`CloneDialog.tsx`). Un `accountId` de otro host habría dejado el override de credencial sin efecto y fijado la carpeta a la cuenta equivocada. **Fix:** el handler compara `new URL(url).host` contra `account.host` antes de clonar.
+- **Q8.3** `validateCloneUrl` no rechazaba URLs con credenciales embebidas (`https://token@host/...`) — el host post-"@" es el real/conocido, así que pasaba el resto de la validación y el secreto terminaba en el argv del proceso de `git clone` (visible a otros procesos de la sesión mientras dura el clone, lo que ADR 0006 prohíbe para tokens). **Fix:** se rechaza cualquier URL cuyo `username`/`password` de `new URL()` no esté vacío.
+
+Dos hallazgos menores, también corregidos (bajo riesgo, pero baratos de resolver):
+
+- **Q8.4** `CloneDialog.tsx` no tenía forma de cancelar un clone en curso; si se cerraba el diálogo mientras clonaba, un error quedaba sin mostrar (componente ya desmontado). **Fix:** no se puede cerrar el diálogo (ni con la X ni con clic afuera) mientras `step.kind === 'clonando'` — más simple que agregar cancelación real.
+- **Q8.5** La comparación de host podía rechazar un host legítimo guardado con otras mayúsculas/minúsculas (GitLab autoalojado: el host se tipea a mano al vincular, sin normalizar; `new URL().host` siempre normaliza a minúsculas). **Fix:** comparación case-insensitive tanto en `validateCloneUrl` como en el chequeo de Q8.2.
+
+**No corregido, documentado como límite conocido (severidad menor, baja probabilidad):** una carrera residual entre el chequeo de solapamiento (Q5, antes del clone) y el Auto-Pin (Q4, después) — si otra acción fija una regla que se solapa _mientras_ el clone está en curso, `rulesStore.pin()` puede rechazar después de que el clone y `writeAccountProfile` ya corrieron, dejando un repo clonado completo sin regla/`includeIf`. Agregar un lock cruzado a esta única ventana no amerita la complejidad para este change — queda anotado acá por si se repite en otro contexto.
+
 ## Fuera de alcance de este change
 
 Ver "Qué NO cambia / queda fuera" en `proposal.md`: preferencias globales de carpeta/aislamiento, clonar sin cuenta vinculada del host, activar la guardia de identidad automáticamente, progreso con porcentaje exacto, SSH, reintento automático con otra cuenta.

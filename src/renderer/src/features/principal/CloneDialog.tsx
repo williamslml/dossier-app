@@ -56,13 +56,23 @@ export function CloneDialog({
   }
 
   const canSubmit = url.trim().length > 0 && !!accountId && !!destPath
+  // Hallazgo de revisión: no hay forma de cancelar un clone en curso — si
+  // se cerraba el diálogo mientras clonaba, un error quedaba sin mostrar
+  // (el componente ya desmontado no puede setear su propio estado). Más
+  // simple que agregar cancelación: no dejar cerrar hasta que termine.
+  const closeDisabled = step.kind === 'clonando'
 
   return (
-    <div class="dialog-overlay" onClick={onClose}>
+    <div class="dialog-overlay" onClick={closeDisabled ? undefined : onClose}>
       <div class="dialog-card" onClick={(event) => event.stopPropagation()}>
         <div class="dialog-header">
           <span class="dialog-title">Clonar repositorio</span>
-          <button class="icon-action-btn" title="Cerrar" onClick={onClose}>
+          <button
+            class="icon-action-btn"
+            title={closeDisabled ? 'Esperá a que termine de clonar' : 'Cerrar'}
+            disabled={closeDisabled}
+            onClick={onClose}
+          >
             <svg width="13" height="13">
               <use href="#icon-x" />
             </svg>

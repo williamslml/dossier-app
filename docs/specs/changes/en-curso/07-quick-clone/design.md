@@ -4,55 +4,11 @@ Ver `proposal.md`/`requirements.md` para el porqué y los requisitos. Acá, el e
 
 ## Q1/Q2 — `core/features/clone/clone.ts`
 
-```ts
-import { simpleGit } from 'simple-git'
+Ver el archivo real para el código completo — acá, lo que cambió en la revisión de Q8 respecto al sketch original:
 
-export interface CloneAccount {
-  host: string
-  username: string
-}
-
-export class InvalidCloneUrlError extends Error {
-  constructor(readonly url: string, reason: string) {
-    super(`"${url}" no es una URL válida para clonar: ${reason}`)
-    this.name = 'InvalidCloneUrlError'
-  }
-}
-
-/** Q2.1/Q2.2: valida antes de que la URL llegue a Git — nunca confía en que
-    Git rechace algo peligroso por su cuenta (p. ej. una URL empezando con
-    `-`, que podría interpretarse como un flag). */
-export function validateCloneUrl(url: string, knownHosts: string[]): void {
-  if (!url.startsWith('https://')) {
-    throw new InvalidCloneUrlError(url, 'solo se admite https://')
-  }
-  const host = new URL(url).host // tira si la URL es inválida más allá del esquema
-  if (!knownHosts.includes(host)) {
-    throw new InvalidCloneUrlError(url, `ninguna cuenta vinculada tiene el host "${host}"`)
-  }
-}
-
-/** Q1.1: `-c credential.<host>.username=<username>` es un override puntual
-    de esta invocación — nunca toca `~/.gitconfig` ni `active.gitconfig`,
-    así que no interfiere con la cuenta activa ni con otras carpetas
-    fijadas. `git.raw([...])` (no el `.clone()` de simple-git) para que el
-    `-c` quede exactamente antes de `clone`, mismo patrón que ya usa el
-    resto de `core` (`gitconfig.ts`, `identity.ts`). */
-export async function cloneRepo(
-  url: string,
-  destPath: string,
-  account: CloneAccount,
-): Promise<void> {
-  const git = simpleGit()
-  await git.raw([
-    '-c',
-    `credential.${account.host}.username=${account.username}`,
-    'clone',
-    url,
-    destPath,
-  ])
-}
-```
+- `validateCloneUrl` también rechaza `parsed.username`/`parsed.password` no vacíos (Q8.3), y compara hosts en minúsculas de los dos lados (Q8.5).
+- `cloneRepo` arma el `simpleGit` con `{ timeout: { block: 30_000 } }` + `.env('GIT_TERMINAL_PROMPT', '0')`, y agrega dos `-c` más al `git clone`: `credential.interactive=false` y `credential.guiPrompt=false` (Q8.1 — `GIT_TERMINAL_PROMPT` por sí solo no alcanzó, confirmado con un test que se colgó igual sin estos dos).
+- **Hallazgo de implementación, aparte de la revisión:** llamar `.env({ ...process.env, GIT_TERMINAL_PROMPT: '0' })` (spread completo) disparaba el plugin de seguridad de `simple-git` ("Use of EDITOR is not permitted without enabling allowUnsafeEditor") si el `EDITOR` de la shell estaba seteado — la forma de un solo par clave/valor (`.env('GIT_TERMINAL_PROMPT', '0')`) evita el problema sin necesitar `allowUnsafeEditor`.
 
 `InvalidCloneUrlError`/errores de Git (lanzados tal cual, `simple-git` ya los da con `stderr` legible) llegan al IPC handler, que los reenvía al renderer como el `message` de la excepción — mismo patrón que `FolderOverlapError` en `pinFolder`.
 
@@ -65,6 +21,14 @@ ipcMain.handle(IPC.cloneRepo, async (_event, payload: unknown) => {
   if (!account) throw new Error('Cuenta no encontrada')
 
   validateCloneUrl(url, [...new Set(accountsStore.list().map((a) => a.host))])
+
+  // Q8.2 (hallazgo de revisión): validateCloneUrl solo confirma que el host
+  // tiene ALGUNA cuenta vinculada, nunca que sea la MISMA que accountId —
+  // sin esto, un accountId de otro host dejaba el override de credencial
+  // sin efecto y el Auto-Pin fijaba la carpeta a la cuenta equivocada.
+  if (new URL(url).host !== account.host.toLowerCase()) {
+    throw new Error('La cuenta elegida no es del mismo host que la URL.')
+  }
 
   // Q5.1: el chequeo de solapamiento corre ANTES del clone — reusa la misma
   // normalización que ya tiene rulesStore internamente, llamando a un
