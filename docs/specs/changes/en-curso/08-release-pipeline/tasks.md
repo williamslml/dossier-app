@@ -13,10 +13,14 @@
 - [x] Pasos: typecheck/lint/test (mismo criterio que `ci.yml`) → `electron-vite build` → `electron-builder --win` (build, sin publicar) → `gh release create` (ver el hallazgo abajo)
 - [x] `permissions: contents: write` explícito
 
-**Dos hallazgos reales, encontrados empujando un tag de prueba de verdad contra GitHub (ver requirements.md R2.6 para el detalle completo):**
+**Cuatro hallazgos reales, cada uno encontrado empujando un tag de prueba de verdad contra GitHub, nunca hipotético (ver requirements.md R2.6 para el detalle completo):**
 
-1. `electron-builder` nombra la release con la versión de `package.json`, no con el tag real — sin corregirlo, creó una release "untagged" en vez de usar el tag empujado. Fix: `-c.extraMetadata.version=$RELEASE_VERSION` (derivado de `GITHUB_REF_NAME`).
-2. `--publish always` de `electron-builder` paraleliza la subida por artefacto, y cada uno puede decidir crear la release — con dos tags de prueba distintos se vieron **dos** releases creadas para el mismo run. Fix: construir sin publicar, y crear la release + subir los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, atómico.
+1. `electron-builder` nombra la release con la versión de `package.json`, no con el tag real — sin corregirlo, creó una release "untagged" en vez de usar el tag empujado.
+2. `--publish always` de `electron-builder` paraleliza la subida por artefacto, y cada uno puede decidir crear la release — con dos tags de prueba distintos se vieron **dos** releases creadas para el mismo run.
+3. El fix inicial del punto 1 (`-c.extraMetadata.version=X`) falló en el runner real: el shell por default en `windows-latest` es PowerShell, no bash, y ahí ese flag se parseó distinto (`electron-builder` lo tomó como un path de config inexistente). Fix: escribir la versión directo en el `package.json` del checkout temporal con `npm pkg set` (funciona igual en PowerShell y en bash).
+4. Quitar `--publish` del comando **no alcanza** — `electron-builder` loguea "Implicit publishing triggered by git tag" y publica solo cuando corre contra un tag de git con `GH_TOKEN` presente, aunque no se le pida (default que el propio `electron-builder` avisa que va a quitar en su v27). Sin `--publish never` explícito, se repitió la carrera del punto 2 incluso sin pedir publicar.
+
+Fix final: `electron-builder --win --publish never` (nunca publica solo) + un paso aparte que crea la release y sube los tres artefactos (`.exe`, `.exe.blockmap`, `latest.yml`) con un solo `gh release create ... --draft`, atómico.
 
 ## 3. `electron-updater` (R3)
 

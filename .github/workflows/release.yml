@@ -69,7 +69,14 @@ jobs:
       # el mismo tag). Más simple y confiable: construir sin publicar, y
       # crear la release + subir los artefactos en un solo paso atómico con
       # `gh release create` (nunca paraleliza su propia subida de archivos).
-      - run: pnpm electron-builder --win
+      #
+      # Hallazgo real (otro tag de prueba): sacar el `--publish` del
+      # comando NO alcanza — electron-builder loguea "Implicit publishing
+      # triggered by git tag" y publica solo cuando corre contra un tag de
+      # git con GH_TOKEN presente, aunque no se le pida. Hace falta
+      # `--publish never` explícito para desactivar ese default (que el
+      # propio electron-builder ya avisa que va a quitar en su v27).
+      - run: pnpm electron-builder --win --publish never
 
       - name: Crear la release en borrador con los artefactos
         shell: bash
