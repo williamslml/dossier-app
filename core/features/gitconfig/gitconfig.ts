@@ -27,15 +27,18 @@ export async function writeIncludeIf(
   gitdirPattern: string,
   profilePath: string,
 ): Promise<void> {
-  // Git resuelve el gitdir por su ruta REAL (sin symlinks) al hacer el match
-  // de includeIf. Si la carpeta se alcanza por una ruta no canónica (p. ej.
-  // os.tmpdir() en macOS: /var/... es symlink de /private/var/...; algunos
-  // runners de Windows tienen el mismo problema con TEMP), el match falla en
-  // silencio — encontrado en CI (ver docs/lessons/README.md), reproducido
-  // localmente con una junction en gitconfig.test.ts. Resolver con realpath
-  // antes de normalizar, no solo la barra invertida de Windows.
+  // Git resuelve el gitdir por su ruta REAL al hacer el match de includeIf,
+  // y eso cubre dos formas distintas de ruta "no canónica" (ver
+  // docs/lessons/README.md):
+  //   1. Symlinks/junctions (p. ej. macOS: /var/... es symlink de
+  //      /private/var/...).
+  //   2. En Windows, el alias de nombre corto 8.3 (p. ej. `RUNNER~1` en
+  //      vez de `runneradmin`, visto en los runners de GitHub Actions).
+  // `realpathSync` (la versión JS) resuelve (1) pero NO (2): hace falta
+  // `realpathSync.native`, que usa la API nativa de Windows y resuelve
+  // ambas — confirmado reproduciendo un alias 8.3 real localmente.
   const withoutTrailingSlash = gitdirPattern.replace(/[/\\]+$/, '')
-  const realPattern = `${realpathSync(withoutTrailingSlash)}/`
+  const realPattern = `${realpathSync.native(withoutTrailingSlash)}/`
   const normalizedPattern = realPattern.split('\\').join('/')
   const git = simpleGit()
   await git.raw([

@@ -60,15 +60,22 @@ Ambos casos aparecieron construyendo `core/features/accounts/accounts.ts` (M2) �
 
 ---
 
-# `includeIf` necesita la ruta REAL (sin symlinks), no la que devuelve `os.tmpdir()`
+# `includeIf` necesita la ruta REAL — y en Windows eso incluye los alias 8.3, no solo symlinks
 
-Aplica cuando: construyas un patrón de `includeIf "gitdir/i:<patrón>"` a partir de una ruta de la que no controlás si pasa por un symlink/junction — en particular, cualquier ruta bajo `os.tmpdir()`.
+Aplica cuando: construyas un patrón de `includeIf "gitdir/i:<patrón>"` a partir de una ruta de la que no controlás si pasa por un symlink/junction o por un alias de nombre corto de Windows — en particular, cualquier ruta bajo `os.tmpdir()`.
 
-Encontrado en CI (GitHub Actions): el test de `includeIf` (R4) pasaba en local y fallaba igual en `windows-latest` y `macos-latest`, pero no en `ubuntu-latest`. Causa: `os.tmpdir()` en esos runners resuelve a través de un symlink/junction (el caso clásico es macOS: `/var/...` es symlink de `/private/var/...`; algunos runners Windows tienen un problema análogo con `TEMP`). Git resuelve el `gitdir` por su ruta **canónica** (sin symlinks) al hacer el match de `includeIf` — un patrón construido con la ruta sin resolver no matchea, en silencio, sin error.
+Encontrado en CI (GitHub Actions): el test de `includeIf` (R4) pasaba en local y fallaba en `windows-latest` y `macos-latest`, pero no en `ubuntu-latest`. Dos causas distintas, confirmadas con diagnóstico en el propio log de CI:
 
-Reproducible en **cualquier máquina**, sin depender de que el runner tenga esa capa de symlink: crear una carpeta real + una junction/symlink que apunte a ella (`fs.symlinkSync(real, link, 'junction')` en Windows no pide privilegios de administrador), y usar la ruta del symlink (no la real) para construir el patrón.
+1. **macOS**: `os.tmpdir()` ahí resuelve a través de un symlink (`/var/...` es symlink de `/private/var/...`).
+2. **Windows**: `os.tmpdir()` en el runner de GitHub Actions devolvía el alias de nombre corto 8.3 del usuario (`C:\Users\RUNNER~1\...`), pero `git rev-parse --absolute-git-dir` reportaba el nombre largo real (`C:\Users\runneradmin\...`) — confirmado imprimiendo ambos en el log de CI.
 
-Fix: `realpathSync()` sobre la ruta **antes** de normalizar las barras, dentro de `writeIncludeIf` (no responsabilidad del llamador) — mismo principio que ya se aplicó para `\` vs `/` en Windows: la función que escribe el `includeIf` es quien garantiza que el patrón coincide con lo que Git va a comparar, no cada sitio que la llama.
+Git resuelve el `gitdir` por su ruta **canónica** al hacer el match de `includeIf`; un patrón construido con la ruta sin resolver no matchea, en silencio, sin error — para ninguno de los dos casos.
+
+**La trampa:** `fs.realpathSync()` (la versión JS pura de Node) resuelve (1) pero **no** resuelve (2) en Windows — confirmado comparándolo contra un alias 8.3 real localmente (`fs.realpathSync('C:\Users\2510TK~1')` devuelve la misma ruta corta, sin cambios). Hace falta `fs.realpathSync.native`, que usa la API nativa de Windows (`GetFinalPathNameByHandle`) y resuelve ambos casos.
+
+Reproducible en **cualquier máquina**, sin depender de que el runner tenga esa condición: (1) crear una carpeta real + una junction que apunte a ella (`fs.symlinkSync(real, link, 'junction')`, sin privilegios de administrador); (2) en Windows, obtener el alias 8.3 de una carpeta con `cmd /c "for %I in (...) do @echo %~sI"` y usarlo en vez del nombre largo. Ambos casos tienen test en `gitconfig.test.ts`.
+
+Fix: `realpathSync.native()` sobre la ruta **antes** de normalizar las barras, dentro de `writeIncludeIf` (no responsabilidad del llamador) — mismo principio que ya se aplicó para `\` vs `/`: la función que escribe el `includeIf` es quien garantiza que el patrón coincide con lo que Git va a comparar, no cada sitio que la llama.
 
 ## Promoción a la carpeta global (`~/sfp/`)
 

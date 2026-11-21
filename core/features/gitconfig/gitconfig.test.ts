@@ -1,3 +1,4 @@
+import { execSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, symlinkSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -69,28 +70,6 @@ beforeEach(async () => {
 })
 
 describe('includeIf por carpeta (R4)', () => {
-  it('[DEBUG temporal] diagnóstico de rutas en este runner', async () => {
-    const { execFileSync } = await import('node:child_process')
-    console.log('DEBUG dirA:', dirA)
-    console.log('DEBUG git --version:', execFileSync('git', ['--version']).toString().trim())
-    console.log(
-      'DEBUG absolute-git-dir:',
-      execFileSync('git', ['rev-parse', '--absolute-git-dir'], { cwd: dirA }).toString().trim(),
-    )
-    console.log('DEBUG global config contents:\n' + readFileSync(globalConfigPath, 'utf8'))
-    console.log(
-      'DEBUG config --list (sin GIT_CONFIG_GLOBAL):\n' +
-        execFileSync('git', ['config', '--list'], { cwd: dirA }).toString(),
-    )
-    console.log(
-      'DEBUG config --list (CON GIT_CONFIG_GLOBAL):\n' +
-        execFileSync('git', ['config', '--list'], {
-          cwd: dirA,
-          env: { ...process.env, GIT_CONFIG_GLOBAL: globalConfigPath },
-        }).toString(),
-    )
-  })
-
   it('cada carpeta resuelve su propia identidad (R4.1, R4.3)', async () => {
     expect(await gitConfigGet(dirA, 'user.email')).toBe('a@example.invalid')
     expect(await gitConfigGet(dirB, 'user.email')).toBe('b@example.invalid')
@@ -148,3 +127,46 @@ describe('includeIf con una ruta alcanzada por symlink/junction (CI real)', () =
     expect(value).toBe('a@example.invalid')
   })
 })
+
+/** Alias de nombre corto 8.3 de Windows (p. ej. `C:\Users\2510TK~1`) de la ruta dada, vía `cmd`. */
+function windowsShortPath(longPath: string): string {
+  return execSync(`cmd /c for %I in ("${longPath}") do @echo %~sI`).toString().trim()
+}
+
+// Causa real encontrada en CI (windows-latest de GitHub Actions): os.tmpdir()
+// ahí devuelve el alias de nombre corto 8.3 (`RUNNER~1`), pero Git reporta
+// el gitdir con el nombre largo (`runneradmin`) — un caso distinto del
+// symlink de arriba; `realpathSync` normal NO resuelve alias 8.3 en Windows,
+// solo `realpathSync.native` (confirmado comparando ambas localmente).
+describe.skipIf(process.platform !== 'win32')(
+  'includeIf con una ruta alcanzada por un alias de nombre corto 8.3 (Windows, CI real)',
+  () => {
+    it('resuelve igual aunque el directorio se alcance por el alias 8.3', async () => {
+      const realRoot = mkdtempSync(join(tmpdir(), 'sfp-8dot3-real-'))
+      const shortRoot = windowsShortPath(realRoot)
+
+      const globalCfg = join(realRoot, 'global.gitconfig')
+      writeFileSync(globalCfg, '')
+
+      // dirA se referencia por el alias 8.3, igual que os.tmpdir() lo
+      // devolvió en el runner afectado — no por su nombre largo.
+      const dirA = join(shortRoot, 'repo-a')
+      mkdirSync(dirA, { recursive: true })
+      await simpleGit(dirA).init()
+
+      const profileA = join(realRoot, 'profile-a.gitconfig')
+      await writeProfileConfig(profileA, {
+        'user.name': 'Cuenta A',
+        'user.email': 'a@example.invalid',
+      })
+      await writeIncludeIf(globalCfg, `${dirA}/`, profileA)
+
+      const git = simpleGit({ baseDir: dirA, unsafe: { allowUnsafeConfigPaths: true } }).env(
+        'GIT_CONFIG_GLOBAL',
+        globalCfg,
+      )
+      const value = (await git.raw(['config', '--get', 'user.email'])).trim()
+      expect(value).toBe('a@example.invalid')
+    })
+  },
+)
