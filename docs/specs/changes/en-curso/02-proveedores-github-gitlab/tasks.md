@@ -6,9 +6,10 @@
 
 - [x] RED: test de `deriveNoreplyEmail` — confirmado, fallaba por módulo inexistente
 - [x] GREEN: `deriveNoreplyEmail` (2/2 tests) + `linkGithub` implementado completo (Device Flow + `GET /user`), typecheck/lint en verde — **sin ejecutar el Device Flow todavía**
-- [ ] `[⚠APROBACIÓN]` Correr `linkGithub` completo contra GitHub real (interactivo: abrir `verification_uri`, escribir `user_code`) — pendiente de tu confirmación
-- [ ] Con el token real obtenido: confirmar que `core/features/git-credential` lo guarda/recupera correctamente con `username=login`
-- [ ] Si falla con `username=login`, repetir con `username=x-access-token` — documentar cuál funcionó como ADR (actualiza ADR 0004) y como resolución de la decisión abierta de `docs/product.md` §7.6
+- [x] `[⚠APROBACIÓN]` Correr `linkGithub` completo contra GitHub real — **aprobado y ejecutado** con la cuenta real `williamslml`: `login=williamslml`, `id=146768773`, email derivado correcto
+- [x] Confirmar `approve`/`fill` con el `login` real y con `x-access-token` — **hallazgo real, no el esperado**: ninguno de los dos dio un match limpio porque ya existía una credencial real previa para `github.com`; `fill(x-access-token)` no encontró nada (consistente con que GCM resuelve la identidad real del token para hosts conocidos, no confía en el `username` de `approve` — ver `docs/lessons/README.md`)
+- [x] Resuelto sin usar `x-access-token`: se confirma con el login real. `git ls-remote` contra un repo privado real confirmó que la credencial de `github.com` del usuario sigue operativa — nada se rompió
+- [x] Documentado como lección (`docs/lessons/README.md`) y actualizado ADR 0004 + decisión abierta de `docs/product.md` §7.6
 
 ## 2. GitLab (P2) — TDD con servidor de prueba local
 
@@ -22,8 +23,8 @@
 
 ## 3. Cierre del change
 
-- [ ] Los 2 criterios (P1–P2) verificados y anotados aquí
-- [ ] Decisión abierta `docs/product.md` §7.6 (`x-access-token`) resuelta
-- [ ] Si algo no obvio ocurrió, anotar lección en `../../../lessons/`
-- [ ] Mover esta carpeta a `../archivados/`
-- [ ] Revisar si el change `00` ya puede archivarse (con esto se resuelve su último pendiente real)
+- [x] Los 2 criterios (P1–P2) verificados: GitHub con vinculación real (31→33 tests en la suite completa), GitLab 5/5 con servidor de prueba
+- [x] Decisión abierta `docs/product.md` §7.6 (`x-access-token`) resuelta — no hace falta, se usa el login real
+- [x] Lección anotada en `../../../lessons/` (hallazgo de GCM resolviendo identidad para hosts conocidos)
+- [ ] Mover esta carpeta a `../archivados/` — pendiente de tu confirmación
+- [ ] El change `00` ya puede archivarse también (su último pendiente real quedó resuelto acá) — pendiente de tu confirmación

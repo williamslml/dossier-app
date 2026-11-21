@@ -77,6 +77,24 @@ Reproducible en **cualquier máquina**, sin depender de que el runner tenga esa 
 
 Fix: `realpathSync.native()` sobre la ruta **antes** de normalizar las barras, dentro de `writeIncludeIf` (no responsabilidad del llamador) — mismo principio que ya se aplicó para `\` vs `/`: la función que escribe el `includeIf` es quien garantiza que el patrón coincide con lo que Git va a comparar, no cada sitio que la llama.
 
+---
+
+# GCM parece resolver la identidad real para `github.com`, no confiar ciegamente en el `username` de `approve`
+
+Aplica cuando: diseñes o depures cualquier lógica que dependa de `credential.<host>.username` para distinguir cuentas en un host que GCM reconoce nativamente (GitHub, y probablemente Bitbucket/Azure DevOps) — distinto de un host genérico/desconocido como el `.invalid` usado en el spike.
+
+Verificación en vivo (Device Flow real, cuenta real `williamslml`, Fase 2): ya existía una credencial real para `github.com` (de uso normal del usuario, antes del test). Se probó `approve`→`fill` con dos `username` distintos (el login real, y `x-access-token`) usando el mismo token OAuth nuevo:
+
+- Con el login real (`williamslml`): `approve` no lanzó error, `fill` devolvió un token con formato válido (40 caracteres, prefijo reconocido) — pero no se pudo confirmar si era el token nuevo o el que ya existía antes (no se persistió el valor nuevo en ningún lado para comparar, por diseño).
+- Con `username=x-access-token`: `approve` no lanzó error, pero el `fill` posterior **no encontró nada** bajo ese username exacto (falló igual que "credencial inexistente", no como "token distinto").
+- Tras ambos intentos, el Credential Manager seguía mostrando una única entrada para `github.com`, con usuario `williamslml` (nunca apareció `x-access-token`).
+
+**Hipótesis más coherente con estos tres hechos** (no 100% confirmada: requeriría más pruebas con una segunda cuenta real para aislarla del todo): para hosts que reconoce nativamente, GCM no usa el `username` que le pasás en `approve` como clave de almacenamiento literal — resuelve/valida la identidad real del token (vía la API del proveedor) y guarda bajo esa identidad real, sin importar qué string le hayas pasado. Por eso `x-access-token` "desapareció": nunca se guardó nada bajo ese nombre literal.
+
+**Consecuencia para el diseño (confirma lo que `core/features/providers/github` ya hace):** usar siempre el `login` real de GitHub como `username` — nunca `x-access-token` —, tanto para `git credential approve` como para `credential.github.com.username` en el `includeIf` generado. Resuelve la decisión abierta de `docs/product.md` §7 sobre `x-access-token`: **no hace falta, se usa el login real.**
+
+**Verificación de que nada se rompió:** `git ls-remote` contra un repo privado real devolvió los refs correctamente sin pedir credenciales — la credencial de `github.com` del usuario sigue operativa después del test, se haya sobrescrito o no.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

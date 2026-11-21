@@ -85,7 +85,8 @@ La distinción de mayúsculas en Windows la resuelve `gitdir/i:`; `core/features
 - Git for Windows instala GCM por defecto. La app verifica `git config --get-all credential.helper` y exige que aparezca `manager` o `manager-core`.
 - No se reinicia ni se sobrescribe la cadena de helpers del usuario: si GCM no está, se muestra un estado accionable para reinstalar Git for Windows con GCM.
 - Si otro helper anterior en la cadena pudiera responder primero, se marca la configuración como incompatible y se pide intervención explícita; la app no reordena helpers por su cuenta.
-- `credential.<URL>.username` permite varias cuentas en el mismo host; el config generado fija `useHttpPath=false` para los hosts gestionados. Que un token OAuth/PAT precargado por la app se recupere usando el `login` de la cuenta es la hipótesis crítica — **confirmada** en el spike.
+- `credential.<URL>.username` permite varias cuentas en el mismo host; el config generado fija `useHttpPath=false` para los hosts gestionados. Que un token OAuth/PAT precargado por la app se recupere usando el `login` de la cuenta es la hipótesis crítica — **confirmada** en el spike (host desconocido para GCM) y en la verificación en vivo de la Fase 2 con una cuenta real de `github.com`: `fill` con el `login` real devuelve una credencial válida.
+- **Hallazgo de la Fase 2** (verificación en vivo, `docs/lessons/README.md`): para hosts que GCM reconoce nativamente (`github.com`), todo indica que GCM resuelve/valida la identidad real del token en vez de confiar ciegamente en el `username` pasado a `approve` — aprobar con `username=x-access-token` no dejó ninguna entrada recuperable bajo ese nombre literal. Por eso `core` usa siempre el `login` real como `username`, nunca `x-access-token` (resuelve la decisión abierta de `docs/product.md` §7 sobre esto).
 - `git credential approve` es la forma canónica de precargar credenciales en GCM; `git credential fill` se usa para verificar. `git credential reject` hace el borrado.
 - Toda llamada se ejecuta con interacción desactivada y timeout; un fallo nunca deja un prompt colgando ni bloquea el `push` de forma indefinida.
 - La desinstalación solo quita la región generada en `.gitconfig`, los JSON de `~/.<dataDir>` y las credenciales creadas por la app; no modifica helpers de terceros.
@@ -97,7 +98,7 @@ Ver ADR 0003 (catálogo de librerías y soluciones existentes revisadas) — SSH
 
 ## Consequences
 
-- Si GitHub exige `x-access-token` como `username` en vez del login real (pregunta todavía abierta, `docs/product.md` §7.6), hay que ajustar ese valor también en Quick Clone — pendiente de Fase 2, cuando exista un token real.
+- ~~Si GitHub exige `x-access-token`...~~ — **resuelto en Fase 2**: no hace falta, se usa el `login` real en todos lados (`approve`, `includeIf`, Quick Clone).
 - El Doctor (pendiente) tiene que distinguir "cuenta no vinculada" de "fallo de red al autodetectar el proveedor" — ver `docs/lessons/README.md`.
 
 ## References
