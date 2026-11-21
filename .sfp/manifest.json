@@ -38,7 +38,7 @@
     "profile": "fullstack",
     "stage": "1",
     "rationale": "project-structure.md §3: situación 'nuevo/vacío' (discover.sh: features_max=0, desplegables_estimados=0) → decide entrevista + evidencia. Tipo 'app de escritorio' sin mapeo directo (paso 1); electron-vite impone 3 procesos (main/preload/renderer) + core Node puro separado, sin red entre ellos pero un solo deployable → regla de desempate D3 (§3.1: front+back sin meta-framework, un solo desplegable) → Fullstack. Etapa 1: ninguna condición de Etapa 2 se cumple (sin features). Ver ADR 0001 para la organización interna (feature-first en renderer/ y core/, no por capa).",
-    "verify_command": "pnpm typecheck && pnpm lint && pnpm test (ya existen; perfil feature-first por ADR 0001)"
+    "verify_command": "pnpm typecheck && pnpm lint && pnpm test"
   },
   "actions": [
     {

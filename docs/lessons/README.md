@@ -123,6 +123,20 @@ Aplica cuando: quieras detectar si el renderer cargó bien, usando los eventos d
 
 El evento `after-create-window` de la librería se dispara **después** de que `loadURL` ya corrió — enganchar `did-finish-load` ahí llega tarde casi siempre (la carga de un archivo local es casi instantánea). Hay que escuchar en `before-load` (ventana ya creada, `loadURL` todavía no se llamó) para no perderse el evento. Además, `electron-menubar` crea la `BrowserWindow` de forma perezosa, solo al mostrarla (`showWindow()`) — para una verificación headless automatizada hay que forzar `showWindow()`, no alcanza con esperar a que la bandeja esté lista.
 
+---
+
+# `verify.sh` de SFP: en Windows, Python puede reportar un campo como "vacío" sin estarlo
+
+Aplica cuando: se corre cualquier script de la skill `spec-first-protocol` que lee `.sfp/manifest.json` con Python (no `jq`), en Windows.
+
+`mget` (en `lib.sh`) usa `print()` de Python para devolver el valor de un campo. Si ese valor tiene un carácter fuera de ASCII (en nuestro caso, `→` dentro de `structure.rationale`) y la consola de Python no está en modo UTF-8 (el default en Windows suele ser `cp1252`), `print()` lanza `UnicodeEncodeError`, el proceso termina con error antes de imprimir nada, y `mget` devuelve una cadena vacía sin ningún aviso — `verify.sh` lo reporta como "AVISO: structure.rationale vacío", aunque el campo tiene contenido real. Fix: correr estos scripts con `PYTHONUTF8=1` por delante (mismo patrón que ya usa `integrations.json` para el `undo` de `rtk`). No es un problema del manifiesto ni hay que vaciar los campos de evitar tildes/flechas para "ser compatibles" — es un bug de codificación del entorno, se soluciona con la variable de entorno.
+
+# El campo `verify_command` del manifiesto debe ser *solo* el comando, nada de prosa
+
+Aplica cuando: se escribe o edita `structure.verify_command` en `.sfp/manifest.json`.
+
+Quedó guardado como `"pnpm typecheck && pnpm lint && pnpm test (ya existen; perfil feature-first por ADR 0001)"` — la aclaración entre paréntesis viajó pegada al comando. `verify.sh --run-verify` ejecuta ese string literal con `sh -c`, así que la paréntesis rompe la sintaxis y el chequeo falla con un error que no tiene nada que ver con el proyecto. Cualquier nota explicativa sobre un campo ejecutable va en otro lado (un comentario fuera del JSON, o el texto que acompaña al ítem en el plan/reporte), nunca concatenada al valor que un script va a correr tal cual.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
