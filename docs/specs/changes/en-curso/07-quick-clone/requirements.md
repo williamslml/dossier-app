@@ -1,0 +1,61 @@
+# Requirements — Quick Clone
+
+Ver `proposal.md` para el porqué, el alcance completo y los riesgos. Acá, los requisitos con sus escenarios verificables.
+
+## Q1 — `core/features/clone`: clonar con la credencial correcta
+
+- **Q1.1** `cloneRepo(url, destPath, account)` clona el repo en `destPath` usando `git -c credential.<account.host>.username=<account.username> clone <url> <destPath>` — la credencial que GCM resuelve (`fill`) es la de la cuenta elegida, no la de ninguna cuenta "activa" (`selectAccount`/`active.gitconfig` no se tocan para nada acá).
+- **Q1.2** Nunca arma la URL con `usuario:token@host` — el token no pasa por ningún argumento de línea de comandos ni por disco; sigue siendo GCM quien lo resuelve, por `host + username` (mismo patrón que el resto del proyecto, `docs/adr/0004`).
+- **Q1.3** Si Git falla (auth, red, carpeta no vacía, lo que sea), `cloneRepo` rechaza con el `stderr`/mensaje real de Git, sin intentar interpretarlo ni reintentar solo.
+
+**Escenario verificable:** test de integración real (sin mockear Git) — clona un repo público real de GitHub hacia un directorio temporal y confirma que el `.git` resultante tiene el remoto esperado; un segundo test clona con una URL inválida/host inalcanzable y confirma que rechaza con el error de Git, sin crear una carpeta parcial que rompa el resto de la suite.
+
+## Q2 — Validación de la URL antes de pasarla a Git
+
+- **Q2.1** Solo `https://` — cualquier otro esquema (`ssh://`, `git://`, una ruta local, o nada) se rechaza antes de llegar a Git, con un mensaje claro.
+- **Q2.2** El host de la URL tiene que coincidir con el host de alguna cuenta ya vinculada — si ninguna cuenta vinculada tiene ese host, la función de validación lo rechaza (el diálogo, además, ni siquiera deja llegar a este paso sin una cuenta elegida — ver Q3).
+
+**Escenario verificable:** test unitario puro (sin Git real) de la función de validación — tabla de URLs válidas/inválidas (`https://...` válida, `ssh://...` / `git://...` / `/ruta/local` / `https://host-sin-cuenta-vinculada/...` inválidas), confirmando el motivo exacto de cada rechazo.
+
+## Q3 — Diálogo "Clonar repositorio"
+
+- **Q3.1** Mismo patrón visual que `GithubLinkDialog`/`AccountFoldersDialog` (`dialog-overlay`/`dialog-card`, cierra con clic afuera o la X).
+- **Q3.2** Campos, en este orden: URL → cuenta (la lista se filtra a las cuentas cuyo host coincide con la URL ingresada; si hay una sola, no se preselecciona sola igual — Q3.3) → carpeta destino (reusa `window.dossier.pickFolder()`, ya existe).
+- **Q3.3** Si hay más de una cuenta del mismo host, ninguna queda preseleccionada — el usuario elige a propósito (mismo criterio que `AccountFoldersDialog` cuando hay ambigüedad).
+- **Q3.4** Mientras clona: estado "Clonando…" (sin progreso con porcentaje — ver proposal.md), los campos y el botón quedan deshabilitados — no se puede lanzar un segundo clone en paralelo desde el mismo diálogo.
+- **Q3.5** Al terminar con éxito: mismo patrón de `showToast` que vincular una cuenta ("`<nombre>` clonado"), el diálogo se cierra solo.
+- **Q3.6** Si falla: el diálogo quda abierto, muestra el error (mismo patrón `dialog-error` que los demás diálogos), permite reintentar sin volver a tipear todo.
+
+**Escenario verificable:** verificación en vivo (CDP/DOM) — abrir el diálogo, confirmar el orden de los campos y que la lista de cuentas se filtra por host; no se puede probar un clone real contra una URL pública sin tocar la red real desde la verificación en vivo del change (sí vía el test de integración de Q1).
+
+## Q4 — Auto-Pin al terminar con éxito
+
+- **Q4.1** Reusa exactamente el mismo camino que fijar una carpeta a mano (`AccountFoldersDialog`): `writeAccountProfile` + `rulesStore.pin` + `renderIncludeIfBlock`/`updateRegion` — no una función paralela.
+- **Q4.2** Corre **después** de que `cloneRepo` confirma éxito (Q1), nunca en paralelo ni antes — un clone que falla no deja ninguna regla fijada.
+- **Q4.3** La guardia de identidad (`enforced`, S11 de `05-ajustes`) queda apagada por defecto en la regla recién creada, igual que al fijar a mano.
+
+**Escenario verificable:** cubierto por el mismo test de integración de Q1, extendido para confirmar que, tras un clone exitoso, `rulesStore.list()` tiene la regla nueva con `enforced: false`.
+
+## Q5 — Solapamiento de carpeta, chequeado antes de clonar
+
+- **Q5.1** Antes de lanzar `cloneRepo`, se valida que `destPath` no se solape con ninguna regla ya fijada (mismo chequeo que `FolderOverlapError` de `rulesStore.pin`, pero corrido **antes** del clone, no después — si se corriera después, un clone ya hecho quedaría en disco sin poder fijarse).
+- **Q5.2** Si hay solapamiento, se rechaza con el mismo mensaje de `FolderOverlapError`, sin tocar el sistema de archivos ni la red.
+
+**Escenario verificable:** test unitario — con una regla ya fijada, intentar clonar hacia una subcarpeta (o una carpeta que la contiene) rechaza antes de llamar a `cloneRepo` (se verifica con un espía/mock de `cloneRepo` para confirmar que nunca se llama).
+
+## Q6 — IPC y progreso
+
+- **Q6.1** Nuevo canal `IPC.cloneRepo` (`{ url, destPath, accountId }` → éxito/error) y evento `IPC.cloneProgress` (`{ phase: 'clonando' | 'listo' | 'error', message? }`), mismo patrón que `githubVerification` (el renderer se suscribe a un evento, no hace polling).
+- **Q6.2** El handler valida el payload con `zod`, igual que el resto de los handlers de `main`.
+
+**Escenario verificable:** cubierto por la verificación en vivo de Q3 (el diálogo recibe los eventos de progreso reales a través de todo el camino de IPC).
+
+## Q7 — Habilitar el botón
+
+- **Q7.1** `AddButtons.tsx`: el botón "Clonar repositorio" deja de estar `disabled`, abre el diálogo de Q3.
+
+**Escenario verificable:** verificación en vivo — el botón ya no tiene el atributo `disabled` ni el tooltip "Próximamente".
+
+## Fuera de alcance de este change
+
+Ver "Qué NO cambia / queda fuera" en `proposal.md`: preferencias globales de carpeta/aislamiento, clonar sin cuenta vinculada del host, activar la guardia de identidad automáticamente, progreso con porcentaje exacto, SSH, reintento automático con otra cuenta.
