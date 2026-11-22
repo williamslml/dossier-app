@@ -1,4 +1,4 @@
-import { spawn } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 
 export type GitCredentialAction = 'approve' | 'fill' | 'reject'
 
@@ -136,6 +136,54 @@ export function listGithubAccounts(): Promise<string[]> {
       }
       resolve(parseGithubListOutput(stdout))
     })
+  })
+}
+
+export interface CredentialStatus {
+  /** `true` si la cadena de `credential.helper` incluye GCM ('manager', o
+      la legada 'manager-core'). Sin esto, la app no puede guardar tokens
+      (docs/product.md, tabla de riesgos). */
+  gcmConfigured: boolean
+  /** Cadena cruda de helpers configurados, en orden — vacía si no hay
+      ninguno (nunca se lanza por esto, es justo el caso a informar). */
+  helpers: string[]
+  /** `true` si algún otro helper aparece antes que GCM en la cadena — podría
+      responder primero con la cuenta o el token equivocado. Informativo
+      nada más: nunca se reordena la cadena del usuario sin su consentimiento. */
+  otherHelperBeforeGcm: boolean
+}
+
+/** Separa la salida cruda de `git config --get-all credential.helper` en una
+    lista, un helper por línea — función pura, testeable sin Git real. */
+export function parseCredentialHelperChain(stdout: string): string[] {
+  return stdout
+    .split('\n')
+    .map((line) => line.trim())
+    .filter(Boolean)
+}
+
+/** docs/adr/0004: la app depende de que GCM esté en la cadena de
+    `credential.helper`. Lectura nada más — nunca reordena ni modifica la
+    cadena real del usuario. */
+export function getCredentialStatus(): Promise<CredentialStatus> {
+  return new Promise((resolve) => {
+    execFile(
+      'git',
+      ['config', '--get-all', 'credential.helper'],
+      { encoding: 'utf8' },
+      (err, stdout) => {
+        // Código de salida != 0 cuando la clave no existe en absoluto (sin
+        // ningún helper configurado) — no es un error para este chequeo, es
+        // justo el caso "GCM no instalado/configurado" que hay que avisar.
+        const helpers = err ? [] : parseCredentialHelperChain(stdout)
+        const gcmIndex = helpers.findIndex((h) => /manager/.test(h))
+        resolve({
+          gcmConfigured: gcmIndex !== -1,
+          helpers,
+          otherHelperBeforeGcm: gcmIndex > 0,
+        })
+      },
+    )
   })
 }
 

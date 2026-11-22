@@ -5,10 +5,15 @@
 // una regla de ESLint, no solo por convención).
 
 export type {
+  CredentialStatus,
   GitCredentialAction,
   RunGitCredentialOptions,
 } from './features/git-credential/git-credential.ts'
-export { listGithubAccounts, runGitCredential } from './features/git-credential/git-credential.ts'
+export {
+  getCredentialStatus,
+  listGithubAccounts,
+  runGitCredential,
+} from './features/git-credential/git-credential.ts'
 
 export {
   normalizeGitdirPattern,

@@ -22,6 +22,7 @@ import {
   findOverlap,
   getActiveConfigPath,
   getConflictPath,
+  getCredentialStatus,
   getProfilePath,
   installHook,
   linkGithubAccount,
@@ -165,6 +166,12 @@ ipcMain.handle(IPC.openExternal, (_event, payload: unknown) => {
 })
 
 ipcMain.handle(IPC.getSettings, () => getSettingsForRenderer())
+
+// docs/adr/0004: solo informa — nunca reordena ni modifica la cadena real
+// de credential.helper del usuario. `recheckCredentials` es el mismo
+// chequeo, disparado a pedido (p. ej. tras instalar GCM) en vez de al cargar.
+ipcMain.handle(IPC.getCredentialStatus, () => getCredentialStatus())
+ipcMain.handle(IPC.recheckCredentials, () => getCredentialStatus())
 
 // S10.3: una sola función aplica el cambio (IPC o menú de la bandeja) —
 // nunca dos caminos separados que puedan desincronizarse.

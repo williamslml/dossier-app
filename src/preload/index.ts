@@ -3,6 +3,7 @@ import { IPC } from '../shared/ipc-channels.ts'
 import type {
   Account,
   ConflictRecord,
+  CredentialStatus,
   GithubVerification,
   OrphanedCredential,
   Rule,
@@ -13,6 +14,7 @@ import type {
 export type {
   Account,
   ConflictRecord,
+  CredentialStatus,
   GithubVerification,
   OrphanedCredential,
   Rule,
@@ -57,6 +59,8 @@ export interface DossierApi {
   onIdentityConflictsUpdated(callback: (conflicts: ConflictRecord[]) => void): () => void
   resolveIdentityConflict(data: { repoPath: string; action: IdentityConflictAction }): Promise<void>
   cloneRepo(data: { url: string; destPath: string; accountId: string }): Promise<Rule>
+  getCredentialStatus(): Promise<CredentialStatus>
+  recheckCredentials(): Promise<CredentialStatus>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -103,6 +107,8 @@ const api: DossierApi = {
     ipcRenderer.invoke(IPC.resolveIdentityConflict, data),
   cloneRepo: (data: { url: string; destPath: string; accountId: string }) =>
     ipcRenderer.invoke(IPC.cloneRepo, data),
+  getCredentialStatus: () => ipcRenderer.invoke(IPC.getCredentialStatus),
+  recheckCredentials: () => ipcRenderer.invoke(IPC.recheckCredentials),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

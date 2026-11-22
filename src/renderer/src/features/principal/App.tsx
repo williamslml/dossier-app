@@ -1,9 +1,11 @@
 import { useStore } from '@nanostores/preact'
 import { useEffect, useState } from 'preact/hooks'
 import {
+  $credentialStatus,
   $principal,
   $screen,
   $toastMessage,
+  loadCredentialStatus,
   loadIdentityConflicts,
   loadSettings,
   loadState,
@@ -23,6 +25,7 @@ export function App() {
   const state = useStore($principal)
   const toastMessage = useStore($toastMessage)
   const screen = useStore($screen)
+  const credentialStatus = useStore($credentialStatus)
   const [foldersForAccountId, setFoldersForAccountId] = useState<string | null>(null)
   const foldersAccount = state.accounts.find((a) => a.id === foldersForAccountId)
 
@@ -30,6 +33,7 @@ export function App() {
     void loadState()
     void loadSettings()
     void loadIdentityConflicts()
+    void loadCredentialStatus()
     return subscribeThemeUpdates()
   }, [])
 
@@ -45,7 +49,7 @@ export function App() {
           onBack={() => $screen.set('principal')}
         />
         <Ajustes />
-        <Footer synced={state.accounts.length > 0} />
+        <Footer status={credentialStatus} />
       </div>
     )
   }
@@ -102,7 +106,7 @@ export function App() {
           />
         )}
       </div>
-      <Footer synced={state.accounts.length > 0} />
+      <Footer status={credentialStatus} />
     </div>
   )
 }

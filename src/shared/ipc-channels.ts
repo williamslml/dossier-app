@@ -21,6 +21,8 @@ export const IPC = {
   removeOrphanedCredential: 'removeOrphanedCredential',
   setEnforced: 'setEnforced',
   renameAccount: 'renameAccount',
+  getCredentialStatus: 'getCredentialStatus',
+  recheckCredentials: 'recheckCredentials',
   listIdentityConflicts: 'listIdentityConflicts',
   identityConflictsUpdated: 'identityConflictsUpdated',
   resolveIdentityConflict: 'resolveIdentityConflict',

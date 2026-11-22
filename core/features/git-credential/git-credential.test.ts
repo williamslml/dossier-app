@@ -3,6 +3,8 @@ import { execFileSync } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildGitCredentialArgs,
+  getCredentialStatus,
+  parseCredentialHelperChain,
   parseGithubListOutput,
   runGitCredential,
 } from './git-credential.ts'
@@ -40,6 +42,17 @@ describe('parseGithubListOutput (S9.1, 05-ajustes — pura, sin GCM real)', () =
   })
 })
 
+describe('parseCredentialHelperChain (pura, sin Git real)', () => {
+  it('separa un helper por línea', () => {
+    expect(parseCredentialHelperChain('manager\n')).toEqual(['manager'])
+    expect(parseCredentialHelperChain('store\nmanager\n')).toEqual(['store', 'manager'])
+  })
+
+  it('salida vacía da una lista vacía', () => {
+    expect(parseCredentialHelperChain('')).toEqual([])
+  })
+})
+
 // R3 (requirements.md): approve/fill/reject de GCM por cuenta. Solo tiene
 // sentido en Windows real (GCM es específico de Git for Windows) — R5 exige
 // no tocar cuentas reales: host reservado .invalid (nunca resuelve) + tokens
@@ -63,6 +76,30 @@ function hasManagerHelper(): boolean {
     return false
   }
 }
+
+describe('getCredentialStatus (GCM real en Windows)', () => {
+  it.runIf(isWindows)(
+    'detecta GCM en la cadena real de este entorno, sin otro helper antes (R3, decisión de diseño)',
+    async () => {
+      // Esta máquina de prueba ya exige 'manager' en la cadena para correr
+      // el resto de la suite (hasManagerHelper más abajo) — confirma que
+      // getCredentialStatus lee lo mismo que ese chequeo ad-hoc.
+      const status = await getCredentialStatus()
+      expect(status.gcmConfigured).toBe(true)
+      expect(status.helpers.some((h) => /manager/.test(h))).toBe(true)
+    },
+  )
+
+  it('nunca lanza, incluso si "git config" no tuviera nada configurado', async () => {
+    // No se puede simular un credential.helper real sin GCM sin tocar la
+    // config global de esta máquina — se prueba la función pura en su lugar
+    // (parseCredentialHelperChain ya cubierta arriba) y acá solo que
+    // getCredentialStatus siempre resuelve, nunca rechaza.
+    const status = await getCredentialStatus()
+    expect(typeof status.gcmConfigured).toBe('boolean')
+    expect(Array.isArray(status.helpers)).toBe(true)
+  })
+})
 
 describe.skipIf(!isWindows)('git-credential (R3, GCM real en Windows)', () => {
   beforeAll(() => {

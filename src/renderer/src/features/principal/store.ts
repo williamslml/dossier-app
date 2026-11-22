@@ -2,6 +2,7 @@ import { atom } from 'nanostores'
 import type {
   Account,
   ConflictRecord,
+  CredentialStatus,
   DossierState,
   IdentityConflictAction,
   OrphanedCredential,
@@ -134,6 +135,16 @@ export async function resolveIdentityConflict(
 export async function cloneRepo(url: string, destPath: string, accountId: string): Promise<void> {
   await window.dossier.cloneRepo({ url, destPath, accountId })
   await loadPins()
+}
+
+export const $credentialStatus = atom<CredentialStatus | null>(null)
+
+export async function loadCredentialStatus(): Promise<void> {
+  $credentialStatus.set(await window.dossier.getCredentialStatus())
+}
+
+export async function recheckCredentials(): Promise<void> {
+  $credentialStatus.set(await window.dossier.recheckCredentials())
 }
 
 export const $orphanedCredentials = atom<OrphanedCredential[]>([])

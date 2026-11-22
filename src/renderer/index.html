@@ -41,6 +41,7 @@
 
         --status-dot-idle: #a3a3a3;
         --status-dot-ok: #16a34a;
+        --status-dot-warn: #d97706;
       }
 
       :root[data-theme='oscuro'] {
@@ -76,6 +77,7 @@
 
         --status-dot-idle: #6b6b6b;
         --status-dot-ok: #22c55e;
+        --status-dot-warn: #fbbf24;
       }
 
       * {
@@ -418,6 +420,12 @@
         display: flex;
         align-items: center;
         gap: 5px;
+        background: transparent;
+        border: none;
+        color: inherit;
+        font: inherit;
+        padding: 0;
+        cursor: pointer;
       }
       .status-dot {
         width: 6px;
@@ -427,6 +435,12 @@
       }
       .status-dot--ok {
         background-color: var(--status-dot-ok);
+      }
+      .status-dot--warn {
+        background-color: var(--status-dot-warn);
+      }
+      .status-dot--error {
+        background-color: var(--danger-fg);
       }
 
       /* Estado vacío (S5.3 — nuevo, el prototipo no lo contemplaba) */
