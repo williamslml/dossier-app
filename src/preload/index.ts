@@ -64,6 +64,8 @@ export interface DossierApi {
   getCredentialStatus(): Promise<CredentialStatus>
   recheckCredentials(): Promise<CredentialStatus>
   runDoctor(): Promise<DoctorCheck[]>
+  checkGithubCliImport(): Promise<{ username: string; name: string; email: string | undefined } | null>
+  importGithubCliAccount(label: string): Promise<DossierState>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -113,6 +115,9 @@ const api: DossierApi = {
   getCredentialStatus: () => ipcRenderer.invoke(IPC.getCredentialStatus),
   recheckCredentials: () => ipcRenderer.invoke(IPC.recheckCredentials),
   runDoctor: () => ipcRenderer.invoke(IPC.runDoctor),
+  checkGithubCliImport: () => ipcRenderer.invoke(IPC.checkGithubCliImport),
+  importGithubCliAccount: (label: string) =>
+    ipcRenderer.invoke(IPC.importGithubCliAccount, { label }),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

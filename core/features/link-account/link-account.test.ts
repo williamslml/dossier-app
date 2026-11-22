@@ -7,7 +7,12 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { createAccountsStore } from '../accounts/accounts.ts'
 import type { AccountsStore } from '../accounts/accounts.ts'
 import type { LinkedAccount } from '../providers/github/github.ts'
-import { linkGithubAccount, linkGitlabAccount, saveLinkedAccount } from './link-account.ts'
+import {
+  findImportableGithubCliAccount,
+  linkGithubAccount,
+  linkGitlabAccount,
+  saveLinkedAccount,
+} from './link-account.ts'
 import { runGitCredential } from '../git-credential/git-credential.ts'
 import type { GithubVerification } from '../providers/github/github.ts'
 
@@ -173,6 +178,77 @@ describe('linkGithubAccount (L1 — orquestación, sin tocar GCM real)', () => {
     ])
     expect(account.host).toBe('github.com')
     expect(account.provider).toBe('github')
+  })
+})
+
+describe('findImportableGithubCliAccount (sincronizar cuentas previas — sin tocar gh real)', () => {
+  // Nunca invoca gh CLI de verdad en un test: findToken/fetchUser siempre
+  // inyectados, igual que con el GCM real en el resto de este archivo.
+  it('sin token cacheado (gh ausente o sin sesión), no hay nada que importar', async () => {
+    const result = await findImportableGithubCliAccount(
+      store,
+      async () => undefined,
+      async () => {
+        throw new Error('nunca debería llamarse sin token')
+      },
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it('con un token cacheado de una cuenta nueva, lo confirma contra la API y lo devuelve', async () => {
+    const linked: LinkedAccount = {
+      provider: 'github',
+      username: 'cli-user',
+      id: 9,
+      name: 'Usuario CLI',
+      email: 'cli@users.noreply.github.com',
+      token: 'gho_fake',
+    }
+    const result = await findImportableGithubCliAccount(
+      store,
+      async () => 'gho_fake',
+      async (token) => {
+        expect(token).toBe('gho_fake')
+        return linked
+      },
+    )
+    expect(result).toEqual(linked)
+  })
+
+  it('si la cuenta ya está vinculada, no la ofrece de nuevo', async () => {
+    store.create({
+      provider: 'github',
+      host: 'github.com',
+      label: 'Ya vinculada',
+      username: 'cli-user',
+      name: 'Usuario CLI',
+      email: 'cli@users.noreply.github.com',
+    })
+    const result = await findImportableGithubCliAccount(
+      store,
+      async () => 'gho_fake',
+      async () => ({
+        provider: 'github',
+        username: 'cli-user',
+        id: 9,
+        name: 'Usuario CLI',
+        email: 'cli@users.noreply.github.com',
+        token: 'gho_fake',
+      }),
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it('si el token cacheado no es válido, el error de fetchUser se propaga (nunca se oculta)', async () => {
+    await expect(
+      findImportableGithubCliAccount(
+        store,
+        async () => 'gho_invalido',
+        async () => {
+          throw new Error('GET /user de GitHub falló con estado 401')
+        },
+      ),
+    ).rejects.toThrow('401')
   })
 })
 

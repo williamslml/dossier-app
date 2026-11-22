@@ -1,4 +1,4 @@
-import { useRef, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import type { GithubVerification } from '../../../../preload/index.ts'
 import { applyState, showToast } from './store.ts'
 
@@ -6,6 +6,8 @@ type Step =
   | { kind: 'form' }
   | { kind: 'waiting'; verification: GithubVerification }
   | { kind: 'error'; message: string }
+
+type CliImport = { username: string; name: string; email: string | undefined }
 
 export function GithubLinkDialog({
   onClose,
@@ -18,6 +20,34 @@ export function GithubLinkDialog({
   const [step, setStep] = useState<Step>({ kind: 'form' })
   const [copied, setCopied] = useState(false)
   const unsubscribe = useRef<(() => void) | null>(null)
+
+  // docs/product.md: "sincronizar cuentas previas a Dossier" (b) — ofrece
+  // la sesión de `gh` CLI si hay una, nunca la usa sin que el usuario la
+  // confirme acá (igual que escribir la etiqueta y tocar "Vincular").
+  const [cliImport, setCliImport] = useState<CliImport | null>(null)
+  const [importingCli, setImportingCli] = useState(false)
+
+  useEffect(() => {
+    void window.dossier.checkGithubCliImport().then(setCliImport)
+  }, [])
+
+  async function handleImportCli(): Promise<void> {
+    const trimmed = label.trim()
+    if (!trimmed) return
+    setImportingCli(true)
+    try {
+      applyState(await window.dossier.importGithubCliAccount(trimmed))
+      showToast(`${trimmed} vinculada`)
+      onLinked()
+    } catch (err) {
+      setStep({
+        kind: 'error',
+        message: err instanceof Error ? err.message : 'No se pudo importar la cuenta.',
+      })
+    } finally {
+      setImportingCli(false)
+    }
+  }
 
   async function handleSubmit(event: Event) {
     event.preventDefault()
@@ -72,6 +102,22 @@ export function GithubLinkDialog({
                 required
               />
             </div>
+
+            {cliImport && (
+              <div class="cli-import-banner">
+                <span>
+                  Ya tenés sesión de <strong>gh</strong> CLI con <strong>{cliImport.username}</strong>.
+                </span>
+                <button
+                  type="button"
+                  class="btn-add btn-secondary"
+                  disabled={!label.trim() || importingCli}
+                  onClick={() => void handleImportCli()}
+                >
+                  {importingCli ? 'Vinculando…' : 'Usar esta cuenta'}
+                </button>
+              </div>
+            )}
             <button class="btn-add btn-primary" type="submit" disabled={!label.trim()}>
               Vincular
             </button>

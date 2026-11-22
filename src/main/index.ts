@@ -25,8 +25,10 @@ import {
   getCredentialStatus,
   getProfilePath,
   installHook,
+  findImportableGithubCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
+  saveLinkedAccount,
   readConflicts,
   renderIncludeIfBlock,
   removeIncludeIfBlock,
@@ -177,6 +179,28 @@ ipcMain.handle(IPC.recheckCredentials, () => getCredentialStatus())
 // M-Doctor (docs/product.md): un chequeo por carpeta fijada, a pedido —
 // nunca escribe nada, solo lee.
 ipcMain.handle(IPC.runDoctor, () => runDoctor(rulesStore, accountsStore, dataDir))
+
+// docs/product.md: "sincronizar cuentas previas a Dossier" (b) — nunca se
+// envía el token al renderer, solo los campos seguros para mostrar; vincular
+// de verdad (importGithubCliAccount) vuelve a chequear del lado de main, no
+// confía en lo que el renderer recuerde de la primera llamada.
+ipcMain.handle(IPC.checkGithubCliImport, async () => {
+  const linked = await findImportableGithubCliAccount(accountsStore)
+  if (!linked) return null
+  return { username: linked.username, name: linked.name, email: linked.email }
+})
+
+const importGithubCliAccountSchema = z.object({ label: z.string().min(1) })
+ipcMain.handle(IPC.importGithubCliAccount, async (_event, payload: unknown) => {
+  const { label } = importGithubCliAccountSchema.parse(payload)
+  const linked = await findImportableGithubCliAccount(accountsStore)
+  if (!linked) {
+    throw new Error('Ya no hay ninguna sesión de gh CLI para importar.')
+  }
+  const account = await saveLinkedAccount(accountsStore, linked, label, 'github.com')
+  notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  return getState()
+})
 
 // S10.3: una sola función aplica el cambio (IPC o menú de la bandeja) —
 // nunca dos caminos separados que puedan desincronizarse.

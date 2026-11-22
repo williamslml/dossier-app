@@ -1,12 +1,18 @@
 import type { AccountsStore, Account } from '../accounts/accounts.ts'
+import { findGithubCliToken as defaultFindGithubCliToken } from '../cli-import/cli-import.ts'
 import type { GithubVerification, LinkedAccount } from '../providers/github/github.ts'
-import { linkGithub as defaultLinkGithub } from '../providers/github/github.ts'
+import {
+  fetchGithubUser as defaultFetchGithubUser,
+  linkGithub as defaultLinkGithub,
+} from '../providers/github/github.ts'
 import { linkGitlab as defaultLinkGitlab } from '../providers/gitlab/gitlab.ts'
 import { runGitCredential as defaultRunGitCredential } from '../git-credential/git-credential.ts'
 
 type GitCredential = typeof defaultRunGitCredential
 type LinkGithub = typeof defaultLinkGithub
 type LinkGitlab = typeof defaultLinkGitlab
+type FetchGithubUser = typeof defaultFetchGithubUser
+type FindGithubCliToken = typeof defaultFindGithubCliToken
 
 const FILL_RETRY_ATTEMPTS = 3
 const FILL_RETRY_DELAY_MS = 400
@@ -93,6 +99,29 @@ export function linkGithubAccount(
   return linkGithub(onVerification).then((linked) =>
     saveLinkedAccount(accountsStore, linked, label, 'github.com', gitCredential),
   )
+}
+
+/**
+ * docs/product.md: "sincronizar cuentas previas a Dossier" (b) — si `gh`
+ * CLI ya tiene una sesión cacheada para una cuenta que todavía no está en
+ * `accountsStore`, la confirma de verdad contra `GET /user` (nunca confía
+ * ciegamente en lo que imprime el CLI) y devuelve la cuenta lista para
+ * vincular. Nunca crea nada acá — eso lo decide el llamador (requiere
+ * confirmación explícita, nunca automática).
+ */
+export async function findImportableGithubCliAccount(
+  accountsStore: AccountsStore,
+  findToken: FindGithubCliToken = defaultFindGithubCliToken,
+  fetchUser: FetchGithubUser = defaultFetchGithubUser,
+): Promise<LinkedAccount | undefined> {
+  const token = await findToken()
+  if (!token) return undefined
+
+  const linked = await fetchUser(token)
+  const alreadyLinked = accountsStore
+    .list()
+    .some((a) => a.host === 'github.com' && a.username === linked.username)
+  return alreadyLinked ? undefined : linked
 }
 
 export function linkGitlabAccount(

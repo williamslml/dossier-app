@@ -44,18 +44,13 @@ interface GithubUser {
   created_at: string
 }
 
-export async function linkGithub(
-  onVerification: (verification: GithubVerification) => void,
-): Promise<LinkedAccount> {
-  const auth = createOAuthDeviceAuth({
-    clientType: 'oauth-app',
-    clientId: GITHUB_OAUTH_CLIENT_ID,
-    scopes: ['repo'],
-    onVerification,
-  })
-
-  const { token } = await auth({ type: 'oauth' })
-
+/**
+ * Confirma un token de GitHub (el que sea su origen: Device Flow, o uno ya
+ * cacheado por GCM/`gh` CLI) contra `GET /user` y arma la cuenta completa.
+ * Extraída de `linkGithub` para reusarla con tokens que no vinieron de un
+ * Device Flow nuevo (docs/product.md: sincronizar cuentas previas a Dossier).
+ */
+export async function fetchGithubUser(token: string): Promise<LinkedAccount> {
   const response = await fetch('https://api.github.com/user', {
     headers: {
       Authorization: `Bearer ${token}`,
@@ -76,4 +71,18 @@ export async function linkGithub(
     email: deriveNoreplyEmail(user.login, user.id, user.created_at),
     token,
   }
+}
+
+export async function linkGithub(
+  onVerification: (verification: GithubVerification) => void,
+): Promise<LinkedAccount> {
+  const auth = createOAuthDeviceAuth({
+    clientType: 'oauth-app',
+    clientId: GITHUB_OAUTH_CLIENT_ID,
+    scopes: ['repo'],
+    onVerification,
+  })
+
+  const { token } = await auth({ type: 'oauth' })
+  return fetchGithubUser(token)
 }
