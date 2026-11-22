@@ -44,6 +44,6 @@ Señal de alto riesgo (OAuth/credenciales): revisión obligatoria en sesión sep
 
 - [x] Los criterios (L1–L5) verificados y anotados acá
 - [x] Lecciones anotadas en `docs/lessons/README.md` (preload CommonJS, despachador de git vs. binario de GCM directo, scope `api` de GitLab)
-- [ ] Revisión en sesión separada (señal de alto riesgo) antes de mergear la rama
-- [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
-- [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
+- [x] Revisión en sesión separada (señal de alto riesgo) — hecha de forma retroactiva (este change ya estaba mergeado en `main` sin incidentes, pero nunca había pasado por esta revisión formal). Sesión independiente, sin historial de implementación, sobre el estado actual del código (no un diff viejo) + `pnpm typecheck && pnpm lint && pnpm test` corridos por ella misma: todo en verde (17 archivos, 112 tests). Sin hallazgos bloqueantes: el token nunca sale de `main` ni se persiste fuera de GCM, todos los handlers IPC nuevos validan con zod, `openExternal` está acotado a `https://`, ningún log referencia el token, y el flujo de confirmación (`fill` antes de crear la cuenta) nunca deja estado a medias. Dos hallazgos no bloqueantes anotados: (1) falta un test de integración IPC para `startGithubLink`/`linkGitlab` que `requirements.md` (L2) pedía — la cobertura real de ese cableado quedó solo en la verificación en vivo; (2) cerrar `GithubLinkDialog` no cancela de verdad el Device Flow en curso (ya aceptado como limitación en proposal.md, pero el texto de proposal.md dice que "deja de esperar su resultado" y en la práctica sigue esperándolo — vale ajustar esa frase a futuro)
+- [x] Merge — ya estaba mergeado en `main` desde hace tiempo (cierre retroactivo, sin una rama nueva que mergear ahora)
+- [x] Mover la spec a `../archivados/`
