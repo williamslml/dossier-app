@@ -18,7 +18,7 @@ export function Footer({ status }: { status: CredentialStatus | null }) {
   const { label, variant } = describe(status)
 
   function handleClick(): void {
-    if (!status?.gcmConfigured) {
+    if (status?.gcmConfigured === false) {
       void window.dossier.openExternal(GIT_FOR_WINDOWS_URL)
     }
     void recheckCredentials()

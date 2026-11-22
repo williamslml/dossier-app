@@ -25,6 +25,6 @@ Señal de alto riesgo (credenciales/GCM, aunque de solo lectura): revisión obli
 
 ## 5. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo)
+- [x] Revisión en sesión separada (señal de alto riesgo) — sin hallazgos bloqueantes. Confirmó (corriendo typecheck/lint/test ella misma, 116 tests en verde) que `getCredentialStatus`/`parseCredentialHelperChain` nunca escriben nada (solo `--get-all`, sin `--replace-all`/`--add`/`--unset`), que el caso sin ninguna clave configurada no lanza, que los handlers IPC no necesitan zod (no reciben payload), que `describe()` cubre los 3 estados sin ambigüedad y que `openExternal` solo se llama con la URL fija de Git for Windows, nunca con algo dinámico. Un hallazgo menor no bloqueante: `handleClick` en `Footer.tsx` usaba un chequeo "falsy" (`!status?.gcmConfigured`) en vez del estricto (`status?.gcmConfigured === false`) que ya usaba el `title` del mismo botón — durante el estado inicial `null` ("Verificando…"), un clic en esa ventana de milisegundos abría de más la página de descarga. Corregido: mismo chequeo estricto en los dos lugares
 - [ ] Merge con `finishing-a-development-branch`
 - [ ] Mover la spec a `../archivados/`
