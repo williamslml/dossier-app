@@ -38,7 +38,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado (`docs/specs/changes/archivados/13-doctor/`)
 - [x] Host de GitLab configurable desde la UI — `GitlabLinkDialog.tsx` pide el dominio libremente (por defecto `gitlab.com`, funciona igual para un servidor autoalojado)
 - [x] Arranque con Windows — interruptor en Ajustes
-- [ ] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux)
+- [x] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux) (`docs/specs/changes/archivados/14-almacen-secretos-ausente/`)
 - [x] Instalador NSIS + auto-actualización desde GitHub Releases (`docs/specs/changes/archivados/08-release-pipeline/`) — instalador sin firmar todavía (ver el ítem de SignPath más abajo)
 - [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
 - [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`

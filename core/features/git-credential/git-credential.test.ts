@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildGitCredentialArgs,
+  checkSecretStoreHealth,
   getCredentialStatus,
   parseCredentialHelperChain,
   parseGithubListOutput,
@@ -99,6 +100,33 @@ describe('getCredentialStatus (GCM real en Windows)', () => {
     expect(typeof status.gcmConfigured).toBe('boolean')
     expect(Array.isArray(status.helpers)).toBe(true)
   })
+})
+
+describe('checkSecretStoreHealth (GCM real en Windows)', () => {
+  it.runIf(isWindows)('el round-trip real (approve + fill + reject) da healthy=true', async () => {
+    const result = await checkSecretStoreHealth()
+    expect(result).toEqual({ healthy: true })
+  })
+
+  it.runIf(isWindows)(
+    'nunca deja basura de prueba: un "fill" aparte confirma que "reject" de verdad borró la credencial (hallazgo de revisión)',
+    async () => {
+      // Credencial fija (no la aleatoria interna) para poder confirmarlo
+      // desde afuera, con el mismo mecanismo que ya usa "reject borra solo
+      // la credencial indicada" más abajo en este archivo — no alcanza con
+      // inferirlo corriendo el chequeo dos veces.
+      const host = 'dossier-health-check-cleanup.invalid'
+      const username = `health-cleanup-${suffix}`
+      const password = `probe-cleanup-${suffix}`
+
+      const result = await checkSecretStoreHealth({ credential: { host, username, password } })
+      expect(result).toEqual({ healthy: true })
+
+      await expect(
+        runGitCredential('fill', { protocol: 'https', host, username }),
+      ).rejects.toThrow()
+    },
+  )
 })
 
 describe.skipIf(!isWindows)('git-credential (R3, GCM real en Windows)', () => {
