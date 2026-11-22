@@ -19,7 +19,6 @@ jobs:
     runs-on: windows-latest # solo Windows - el instalador real, no la matriz de ci.yml
     env:
       RTK_DISABLED: '1' # comandos de evidencia de SFP, sin comprimir (CLAUDE.md)
-      GH_TOKEN: ${{ secrets.GITHUB_TOKEN }} # electron-builder lo busca con este nombre
     steps:
       - uses: actions/checkout@v4
 
@@ -76,7 +75,15 @@ jobs:
       # git con GH_TOKEN presente, aunque no se le pida. Hace falta
       # `--publish never` explícito para desactivar ese default (que el
       # propio electron-builder ya avisa que va a quitar en su v27).
+      #
+      # Hallazgo real de la revisión independiente: GH_TOKEN estaba a nivel
+      # de job entero, visible para pasos que no lo necesitan (`pnpm
+      # install`, que corre scripts de terceros). Se acota a los dos únicos
+      # pasos que de verdad lo usan — este (descarga binarios de GitHub,
+      # como el zip de Electron) y el de crear la release.
       - run: pnpm electron-builder --win --publish never
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Hallazgo real (probado de punta a punta con electron-updater de
       # verdad, no solo revisando que la release quede bien formada): GitHub
@@ -95,6 +102,8 @@ jobs:
 
       - name: Crear la release en borrador con los artefactos
         shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$GITHUB_REF_NAME" \
             --draft \

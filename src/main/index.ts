@@ -464,18 +464,22 @@ app.on('will-quit', () => {
 autoUpdater.autoDownload = true
 autoUpdater.autoInstallOnAppQuit = false
 
-// R3.3/Q8 (hallazgo de diseño): `Notification.handleActivation` registra
-// un único callback GLOBAL para cualquier clic en cualquier notificación
-// — no se puede registrar uno aparte solo para la de "actualización
-// lista" sin reemplazar el que ya muestra la ventana. La señal vive acá,
-// el callback único (más abajo) la revisa antes de decidir qué hacer.
-let updateReadyToInstall = false
-
+// R3.3/Q8 (hallazgo de revisión): un flag global que el manejador único de
+// clics revisaba para decidir si instalar hacía que el clic en CUALQUIER
+// otra notificación (incluida una vieja, persistida con `important: true`,
+// clickeada días después) instalara la actualización sin que el usuario
+// lo pidiera. Fix: el clic en la notificación de actualización se escucha
+// en la instancia misma (`Notification.on('click', ...)`, válido mientras
+// la app sigue corriendo, que es el caso normal — la descarga ya terminó),
+// y el manejador global de `handleActivation` (más abajo) nunca instala
+// nada por sí solo, solo muestra la ventana — camino seguro para cualquier
+// otro clic, incluido un arranque en frío sobre esa misma notificación.
 autoUpdater.on('update-downloaded', (info) => {
-  updateReadyToInstall = true
   notify({
     title: brand.displayName,
-    body: `Versión ${info.version} lista para instalar — hacé clic para reiniciar y actualizar.`,
+    body: `Versión ${info.version} lista para instalar — haz clic para reiniciar y actualizar.`,
+  }).once('click', () => {
+    autoUpdater.quitAndInstall() // R3.3: solo este clic, nunca otro
   })
 })
 
@@ -489,12 +493,8 @@ mb.on('ready', () => {
 
   // ADR 0007: un único manejador global de clics en notificaciones, que
   // funciona incluso con arranque en frío (la app no corría cuando se
-  // clickeó el aviso).
+  // clickeó el aviso) — nunca instala nada, solo muestra la ventana.
   registerNotificationClickHandler(() => {
-    if (updateReadyToInstall) {
-      autoUpdater.quitAndInstall() // R3.3: solo acá, nunca antes de este clic
-      return
-    }
     mb.showWindow()
   })
 

@@ -66,25 +66,29 @@ autoUpdater.autoInstallOnAppQuit = false // R3.3: nunca instala sola al cerrar
 // cualquier notificación (`Notification.handleActivation`, API de
 // Electron) — no se puede registrar un segundo callback solo para esta
 // notificación sin reemplazar el que ya existe (clic → mostrar ventana).
-// Por eso la señal de "hay que instalar" vive en una variable de módulo
-// que el mismo callback global ya existente revisa.
-let updateReadyToInstall = false
-
+//
+// Hallazgo real de la revisión independiente: la primera versión de este
+// diseño usaba una variable de módulo (`updateReadyToInstall`) que ese
+// callback global revisaba — pero eso hacía que el clic en CUALQUIER otra
+// notificación (incluida una vieja, persistida con `important: true`,
+// clickeada días después) instalara la actualización sin que el usuario
+// lo pidiera. Fix: escuchar el clic en la instancia misma de la
+// notificación (`Notification.on('click', ...)`, válido mientras la app
+// sigue corriendo — caso normal, la descarga ya terminó), y dejar el
+// callback global sin ninguna rama de instalación: solo muestra la
+// ventana, camino seguro para cualquier otro clic.
 autoUpdater.on('update-downloaded', (info) => {
-  updateReadyToInstall = true
   notify({
     title: brand.displayName,
-    body: `Versión ${info.version} lista para instalar — hacé clic para reiniciar y actualizar.`,
+    body: `Versión ${info.version} lista para instalar — haz clic para reiniciar y actualizar.`,
+  }).once('click', () => {
+    autoUpdater.quitAndInstall() // R3.3: solo este clic, nunca otro
   })
 })
 
 // En el callback global ya existente (src/main/index.ts, ya registrado una
-// sola vez al iniciar):
+// sola vez al iniciar) — nunca instala nada:
 registerNotificationClickHandler(() => {
-  if (updateReadyToInstall) {
-    autoUpdater.quitAndInstall() // R3.3: solo acá, nunca antes de este clic
-    return
-  }
   mb.showWindow() // comportamiento ya existente, sin cambios
 })
 
