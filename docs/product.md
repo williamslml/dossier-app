@@ -36,7 +36,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
 - [x] Quick Clone con Auto-Pin (`docs/specs/changes/archivados/07-quick-clone/`)
 - [ ] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado
-- [ ] Host de GitLab configurable desde la UI
+- [x] Host de GitLab configurable desde la UI — `GitlabLinkDialog.tsx` pide el dominio libremente (por defecto `gitlab.com`, funciona igual para un servidor autoalojado)
 - [x] Arranque con Windows — interruptor en Ajustes
 - [ ] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux)
 - [x] Instalador NSIS + auto-actualización desde GitHub Releases (`docs/specs/changes/archivados/08-release-pipeline/`) — instalador sin firmar todavía (ver el ítem de SignPath más abajo)
@@ -92,7 +92,7 @@ El host de GitLab es configurable desde el inicio, lo que deja resuelto el sopor
 
 ### 3.4 IPC — API que expone el preload (Fase 3)
 
-`getState` · `selectAccount` — **hechos** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). Pendientes: `startGithubLink` (emite `user_code` por evento) · `cancelGithubLink` · `linkGitlab` · `renameAccount` · `removeAccount` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` (emite progreso) · `getCredentialStatus` · `recheckCredentials` · `getSettings` · `setSettings` · `openExternal`.
+`getState` — **hecho** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). También hechos desde entonces: `startGithubLink` (emite `user_code` por evento) · `linkGitlab` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` · `getSettings` · `setSettings` · `openExternal`. `selectAccount` existió y se sacó entero (concepto de "cuenta activa", ver `docs/lessons/README.md`). Pendientes: `renameAccount` · `removeAccount` · `getCredentialStatus` · `recheckCredentials`.
 
 Cada handler valida el origen del mensaje y el esquema de entrada con **zod**. **Nunca se envía un token al renderer.**
 
@@ -103,8 +103,7 @@ Cada handler valida el origen del mensaje y el esquema de entrada con **zod**. *
 | Cuentas           | `accounts.json`                     | `id`, `provider`, `host`, `label`, `username`, `name`, `email`. **Sin secretos** | **Hecho** (`core/features/accounts`)                                 |
 | Tokens            | Windows Credential Manager, vía GCM | entrada por `host + username`; la app nunca guarda secretos en JSON              | **Hecho** (`core/features/git-credential`)                           |
 | Reglas de carpeta | `rules.json`                        | `{ path, accountId }`                                                            | **Hecho** (`core/features/rules`)                                    |
-| Estado            | `state.json`                        | `activeId`                                                                       | **Hecho** (`core/features/state`, consumido por `main` desde Fase 3) |
-| Ajustes           | `settings.json`                     | inicio con el sistema, etc.                                                      | Pendiente                                                            |
+| Ajustes           | `settings.json`                     | tema, inicio con Windows                                                         | **Hecho** (`core/features/settings`)                                 |
 
 Todos los JSON se manejan con `conf`. Escrituras atómicas (archivo temporal + rename, lo da `conf`). El estado de GCM se consulta, no se copia: la app nunca mantiene una caché de tokens.
 
