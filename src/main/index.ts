@@ -144,20 +144,26 @@ function getSettingsForRenderer() {
 
 // S3.3 (ADR 0006): validar origen/esquema de cada handler antes de tocar core.
 ipcMain.handle(IPC.getState, () => getState())
-ipcMain.handle(IPC.selectAccount, async (_event, payload: unknown) => {
-  const { id } = selectAccountSchema.parse(payload)
+// 09-cambio-de-cuenta-bandeja (R1): extraída del handler de abajo para que
+// el menú de la bandeja pueda llamar exactamente el mismo camino, nunca una
+// copia paralela de la lógica de identidad.
+async function selectAccount(id: string): Promise<void> {
   stateStore.setActiveId(id)
   const account = accountsStore.list().find((a) => a.id === id)
-  if (account) {
-    await setActiveAccount(dataDir, account) // M5.1
-    // S6.2 (05-ajustes): además de la identidad, si el usuario lo prendió
-    // y la cuenta tiene una clave asignada, agrega la clave de firma al
-    // mismo perfil — apagado por defecto, no cambia el comportamiento de
-    // M5.1 si nadie lo activó.
-    if (settingsStore.get().applySigningKeyOnSwitch && account.signingKey) {
-      await writeSigningKey(dataDir, account.signingKey)
-    }
+  if (!account) return
+  await setActiveAccount(dataDir, account) // M5.1
+  // S6.2 (05-ajustes): además de la identidad, si el usuario lo prendió
+  // y la cuenta tiene una clave asignada, agrega la clave de firma al
+  // mismo perfil — apagado por defecto, no cambia el comportamiento de
+  // M5.1 si nadie lo activó.
+  if (settingsStore.get().applySigningKeyOnSwitch && account.signingKey) {
+    await writeSigningKey(dataDir, account.signingKey)
   }
+}
+
+ipcMain.handle(IPC.selectAccount, async (_event, payload: unknown) => {
+  const { id } = selectAccountSchema.parse(payload)
+  await selectAccount(id)
   return getState()
 })
 
@@ -167,6 +173,7 @@ ipcMain.handle(IPC.startGithubLink, async (event, payload: unknown) => {
     event.sender.send(IPC.githubVerification, verification)
   })
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  refreshTrayMenu() // R3 (09-cambio-de-cuenta-bandeja): aparece en "Cuenta activa" sin reiniciar
   return getState()
 })
 
@@ -174,6 +181,7 @@ ipcMain.handle(IPC.linkGitlab, async (_event, payload: unknown) => {
   const { label, host, token } = linkGitlabSchema.parse(payload)
   const account = await linkGitlabAccount(accountsStore, label, host, token)
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  refreshTrayMenu() // R3 (09-cambio-de-cuenta-bandeja)
   return getState()
 })
 
@@ -209,7 +217,7 @@ function applySettings(partial: {
   const updated = getSettingsForRenderer()
   // S10.2: el menú se reconstruye en cada cambio, no solo al iniciar —
   // si no, queda desactualizado apenas algo cambia desde la ventana.
-  mb.setContextMenu(buildTrayMenu(updated))
+  refreshTrayMenu()
   return updated
 }
 
@@ -218,10 +226,40 @@ ipcMain.handle(IPC.setSettings, (_event, payload: unknown) => {
   return applySettings(partial)
 })
 
+// 09-cambio-de-cuenta-bandeja (R2): un solo lugar junta los tres datos que
+// necesita el menú — settings, cuentas y la activa — para no repetirlo en
+// cada llamador (settings, vincular cuenta, cambio de cuenta).
+function refreshTrayMenu(): void {
+  mb.setContextMenu(buildTrayMenu(getSettingsForRenderer(), accountsStore.list(), stateStore.getActiveId()))
+}
+
 /** S10: mismas opciones que Ajustes, para cambiarlas sin abrir la ventana. */
-function buildTrayMenu(settings: ReturnType<typeof getSettingsForRenderer>) {
+function buildTrayMenu(
+  settings: ReturnType<typeof getSettingsForRenderer>,
+  accounts: Account[],
+  activeId: string | undefined
+) {
   return Menu.buildFromTemplate([
     { label: 'Abrir', click: () => mb.showWindow() },
+    { type: 'separator' },
+    {
+      label: 'Cuenta activa',
+      // R2.4 (09-cambio-de-cuenta-bandeja): con cero cuentas, deshabilitado
+      // en vez de romper — nunca un submenú vacío que confunda.
+      enabled: accounts.length > 0,
+      submenu: accounts.map((account) => ({
+        label: account.label,
+        type: 'radio' as const,
+        checked: account.id === activeId,
+        click: () => {
+          // R4: un click de Menu nativo no tiene promesa que el renderer
+          // pueda mostrar — el único canal disponible acá es el log.
+          void selectAccount(account.id)
+            .catch((err: unknown) => log.error('no se pudo cambiar de cuenta desde la bandeja', err))
+            .finally(() => refreshTrayMenu())
+        },
+      })),
+    },
     { type: 'separator' },
     {
       label: 'Tema',
@@ -571,8 +609,9 @@ mb.on('ready', () => {
   }
 
   // S10: mismas opciones que Ajustes (tema, inicio con Windows), para
-  // cambiarlas sin abrir la ventana.
-  mb.setContextMenu(buildTrayMenu(getSettingsForRenderer()))
+  // cambiarlas sin abrir la ventana. 09-cambio-de-cuenta-bandeja: más
+  // "Cuenta activa".
+  refreshTrayMenu()
 
   // Solo para pruebas manuales/verificación: electron-menubar crea la
   // ventana perezosamente, solo al mostrarla con un clic real en la bandeja.

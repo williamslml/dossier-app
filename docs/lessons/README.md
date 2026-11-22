@@ -320,6 +320,16 @@ Aplica cuando: se usa `simple-git` y hace falta agregar una variable de entorno 
 
 Llamar `.env({ ...process.env, GIT_TERMINAL_PROMPT: '0' })` (para agregar una variable sin perder el resto del entorno heredado) disparó el error "Use of 'EDITOR' is not permitted without enabling allowUnsafeEditor" — un plugin de seguridad propio de `simple-git` que revisa el objeto pasado a `.env(...)` y bloquea si contiene `EDITOR` (común en cualquier shell de desarrollo), para evitar que una operación de Git intente abrir un editor interactivo sin que el código lo espere. No hace falta pelear contra esto ni habilitar `allowUnsafeEditor`: usar la sobrecarga de un solo par clave/valor (`.env('GIT_TERMINAL_PROMPT', '0')`) evita el chequeo por completo — `simple-git` ya hereda `process.env` del proceso padre por sí solo, no hace falta spreadearlo a mano.
 
+---
+
+# `createAccountsStore()` (y las demás `conf`) no usan `dataDir` — usan la ruta por defecto de `Conf`, salvo que se les pase `cwd` explícito
+
+Aplica cuando: se necesita inspeccionar o sembrar a mano el archivo real donde vive un store basado en `conf` (cuentas, reglas, ajustes, estado), para una verificación en vivo.
+
+Al verificar en vivo `09-cambio-de-cuenta-bandeja`, se sembró un `accounts.json` de prueba en `join(homedir(), '.dossier')` (el `dataDir` que usa el resto de `main/index.ts` para los perfiles de `includeIf`) asumiendo que ahí vivían también las cuentas. La app real (`createAccountsStore()`, sin argumentos en `main/index.ts`) nunca lee esa ruta — `Conf` solo respeta `cwd` si se le pasa explícito; sin él, usa su propia resolución por `projectName`. El archivo de prueba quedó sembrado en un lugar que nadie leía, sin romper nada, pero sin servir tampoco — la app siguió mostrando las cuentas reales ya vinculadas.
+
+**Para la próxima vez:** antes de sembrar datos de prueba a mano para una verificación en vivo, confirmar primero **dónde lee de verdad** el código que se va a probar (grep del call site exacto, no asumir por el nombre de la variable que suena parecido) — `dataDir` (perfiles de Git) y la ruta por defecto de `Conf` (cuentas/reglas/ajustes/estado) son dos cosas distintas en este proyecto, aunque las dos vivan "en la carpeta de datos de la app" conceptualmente.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
