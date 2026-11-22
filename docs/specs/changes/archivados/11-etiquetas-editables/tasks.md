@@ -25,5 +25,5 @@ Ver `design.md` para el detalle técnico. No toca señales de alto riesgo — no
 ## 5. Cierre del change
 
 - [x] Los criterios (E1–E3) verificados y anotados acá
-- [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
-- [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
+- [x] Merge con `finishing-a-development-branch` — mergeado localmente a `main` (fast-forward, sin conflictos), `pnpm typecheck && pnpm lint && pnpm test` en verde sobre el resultado (112 tests), rama `feat/etiquetas-editables` borrada
+- [x] Mover la spec a `../archivados/`

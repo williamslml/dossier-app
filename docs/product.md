@@ -32,7 +32,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [ ] GCM detectado y usable, con estado claro cuando falte
 - [x] ~~Cambio de cuenta activa con un clic desde la bandeja~~ — construido y mergeado (`docs/specs/changes/archivados/09-cambio-de-cuenta-bandeja/`), pero sacado el mismo día: probado en vivo con el usuario real, "cuenta activa" no resuelve nada en su flujo (todo lo que usa está fijado a una cuenta) — ver `docs/lessons/README.md`. El concepto entero se sacó de la UI (bandeja y pantalla principal) y el código muerto resultante (`core/features/identity`: `setActiveAccount`, `writeSigningKey`) se borró
 - [x] Identidad y cuenta HTTPS por carpeta con `includeIf` — confirmado
-- [ ] Etiquetas editables
+- [x] Etiquetas editables (`docs/specs/changes/archivados/11-etiquetas-editables/`)
 - [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
 - [x] Quick Clone con Auto-Pin (`docs/specs/changes/archivados/07-quick-clone/`)
 - [ ] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado
@@ -92,7 +92,7 @@ El host de GitLab es configurable desde el inicio, lo que deja resuelto el sopor
 
 ### 3.4 IPC — API que expone el preload (Fase 3)
 
-`getState` — **hecho** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). También hechos desde entonces: `startGithubLink` (emite `user_code` por evento) · `linkGitlab` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` · `getSettings` · `setSettings` · `openExternal`. `selectAccount` existió y se sacó entero (concepto de "cuenta activa", ver `docs/lessons/README.md`). Pendientes: `renameAccount` · `removeAccount` · `getCredentialStatus` · `recheckCredentials`.
+`getState` — **hecho** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). También hechos desde entonces: `startGithubLink` (emite `user_code` por evento) · `linkGitlab` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` · `getSettings` · `setSettings` · `openExternal` · `renameAccount`. `selectAccount` existió y se sacó entero (concepto de "cuenta activa", ver `docs/lessons/README.md`). Pendientes: `removeAccount` · `getCredentialStatus` · `recheckCredentials`.
 
 Cada handler valida el origen del mensaje y el esquema de entrada con **zod**. **Nunca se envía un token al renderer.**
 
