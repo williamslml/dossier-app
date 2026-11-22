@@ -1,15 +1,9 @@
-import { existsSync, mkdtempSync } from 'node:fs'
+import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { simpleGit } from 'simple-git'
 import { beforeEach, describe, expect, it } from 'vitest'
-import {
-  getActiveConfigPath,
-  getProfilePath,
-  setActiveAccount,
-  writeAccountProfile,
-  writeSigningKey,
-} from './identity.ts'
+import { getActiveConfigPath, getProfilePath, writeAccountProfile } from './identity.ts'
 import type { Account } from '../accounts/accounts.ts'
 
 // M4 (requirements.md): perfil por cuenta + cuenta activa, sobre un
@@ -67,49 +61,3 @@ describe('writeAccountProfile (M4.2)', () => {
   })
 })
 
-describe('setActiveAccount (M4.3, M4.4)', () => {
-  it('escribe el mismo bloque en active.gitconfig', async () => {
-    await setActiveAccount(dataDir, account)
-    const activePath = getActiveConfigPath(dataDir)
-    expect(await gitConfigGetFile(activePath, 'user.email')).toBe('juan@users.noreply.github.com')
-  })
-
-  it('nunca deja un archivo .tmp residual después de terminar', async () => {
-    await setActiveAccount(dataDir, account)
-    expect(existsSync(`${getActiveConfigPath(dataDir)}.tmp`)).toBe(false)
-  })
-
-  it('reemplaza el contenido anterior al activar otra cuenta', async () => {
-    await setActiveAccount(dataDir, account)
-    const otraCuenta: Account = {
-      ...account,
-      id: 'cuenta-2',
-      email: 'otra@users.noreply.github.com',
-    }
-    await setActiveAccount(dataDir, otraCuenta)
-    const activePath = getActiveConfigPath(dataDir)
-    expect(await gitConfigGetFile(activePath, 'user.email')).toBe('otra@users.noreply.github.com')
-  })
-})
-
-describe('writeSigningKey (S6.2, 05-ajustes)', () => {
-  it('agrega la clave de firma sin tocar la identidad ya escrita por setActiveAccount', async () => {
-    await setActiveAccount(dataDir, account)
-    await writeSigningKey(dataDir, { format: 'ssh', keyId: '~/.ssh/id_ed25519.pub' })
-
-    const activePath = getActiveConfigPath(dataDir)
-    expect(await gitConfigGetFile(activePath, 'user.signingkey')).toBe('~/.ssh/id_ed25519.pub')
-    expect(await gitConfigGetFile(activePath, 'gpg.format')).toBe('ssh')
-    // La identidad que ya estaba no se pisa (S6.2: agrega, no reescribe el perfil entero).
-    expect(await gitConfigGetFile(activePath, 'user.email')).toBe('juan@users.noreply.github.com')
-  })
-
-  it('nunca agrega commit.gpgsign ni toca credential.* (S6.4: solo referencia la clave, nunca transporte)', async () => {
-    await setActiveAccount(dataDir, account)
-    await writeSigningKey(dataDir, { format: 'openpgp', keyId: 'ABC123' })
-
-    const activePath = getActiveConfigPath(dataDir)
-    expect(await gitConfigGetFile(activePath, 'commit.gpgsign')).toBeUndefined()
-    expect(await gitConfigGetFile(activePath, 'credential.github.com.username')).toBe('juan-dev')
-  })
-})

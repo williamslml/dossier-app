@@ -30,12 +30,10 @@ import {
   readConflicts,
   renderIncludeIfBlock,
   removeIncludeIfBlock,
-  setActiveAccount,
   uninstallHook,
   updateRegion,
   validateCloneUrl,
   writeAccountProfile,
-  writeSigningKey,
   findOrphans,
   FolderOverlapError,
   listGithubAccounts,
@@ -66,7 +64,7 @@ const THEME_SOURCE: Record<Theme, 'system' | 'light' | 'dark'> = {
 const THEME_LABEL: Record<Theme, string> = {
   claro: 'Claro',
   oscuro: 'Oscuro',
-  sistema: 'Según el sistema',
+  sistema: 'Sistema',
 }
 nativeTheme.themeSource = THEME_SOURCE[settingsStore.get().theme]
 
@@ -76,8 +74,7 @@ const dataDir = join(homedir(), `.${brand.dataDir}`)
 const globalConfigPath = await resolveGlobalConfigPath()
 
 // M4.3 (motor de identidad): asegura el [include] de la cuenta activa una
-// sola vez al iniciar — su contenido se actualiza en cada cambio de
-// cuenta (ver selectAccount), el [include] en sí no cambia nunca.
+// sola vez al iniciar — el [include] en sí no cambia nunca.
 updateRegion(globalConfigPath, (region) =>
   ensureActiveInclude(region, getActiveConfigPath(dataDir)),
 )
@@ -98,7 +95,6 @@ function getState(): DossierState {
   }
 }
 
-const selectAccountSchema = z.object({ id: z.string().min(1) })
 const startGithubLinkSchema = z.object({ label: z.string().min(1) })
 const linkGitlabSchema = z.object({
   label: z.string().min(1),
@@ -111,7 +107,6 @@ const openExternalSchema = z.object({ url: z.string().url().startsWith('https://
 const setSettingsSchema = z.object({
   theme: z.enum(['claro', 'oscuro', 'sistema']).optional(),
   launchAtStartup: z.boolean().optional(),
-  applySigningKeyOnSwitch: z.boolean().optional(),
 })
 const pinFolderSchema = z.object({ path: z.string().min(1), accountId: z.string().min(1) })
 const unpinFolderSchema = z.object({ path: z.string().min(1) })
@@ -144,28 +139,6 @@ function getSettingsForRenderer() {
 
 // S3.3 (ADR 0006): validar origen/esquema de cada handler antes de tocar core.
 ipcMain.handle(IPC.getState, () => getState())
-// 09-cambio-de-cuenta-bandeja (R1): extraída del handler de abajo para que
-// el menú de la bandeja pueda llamar exactamente el mismo camino, nunca una
-// copia paralela de la lógica de identidad.
-async function selectAccount(id: string): Promise<void> {
-  stateStore.setActiveId(id)
-  const account = accountsStore.list().find((a) => a.id === id)
-  if (!account) return
-  await setActiveAccount(dataDir, account) // M5.1
-  // S6.2 (05-ajustes): además de la identidad, si el usuario lo prendió
-  // y la cuenta tiene una clave asignada, agrega la clave de firma al
-  // mismo perfil — apagado por defecto, no cambia el comportamiento de
-  // M5.1 si nadie lo activó.
-  if (settingsStore.get().applySigningKeyOnSwitch && account.signingKey) {
-    await writeSigningKey(dataDir, account.signingKey)
-  }
-}
-
-ipcMain.handle(IPC.selectAccount, async (_event, payload: unknown) => {
-  const { id } = selectAccountSchema.parse(payload)
-  await selectAccount(id)
-  return getState()
-})
 
 ipcMain.handle(IPC.startGithubLink, async (event, payload: unknown) => {
   const { label } = startGithubLinkSchema.parse(payload)
@@ -173,7 +146,6 @@ ipcMain.handle(IPC.startGithubLink, async (event, payload: unknown) => {
     event.sender.send(IPC.githubVerification, verification)
   })
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
-  refreshTrayMenu() // R3 (09-cambio-de-cuenta-bandeja): aparece en "Cuenta activa" sin reiniciar
   return getState()
 })
 
@@ -181,7 +153,6 @@ ipcMain.handle(IPC.linkGitlab, async (_event, payload: unknown) => {
   const { label, host, token } = linkGitlabSchema.parse(payload)
   const account = await linkGitlabAccount(accountsStore, label, host, token)
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
-  refreshTrayMenu() // R3 (09-cambio-de-cuenta-bandeja)
   return getState()
 })
 
@@ -194,11 +165,7 @@ ipcMain.handle(IPC.getSettings, () => getSettingsForRenderer())
 
 // S10.3: una sola función aplica el cambio (IPC o menú de la bandeja) —
 // nunca dos caminos separados que puedan desincronizarse.
-function applySettings(partial: {
-  theme?: Theme | undefined
-  launchAtStartup?: boolean | undefined
-  applySigningKeyOnSwitch?: boolean | undefined
-}) {
+function applySettings(partial: { theme?: Theme | undefined; launchAtStartup?: boolean | undefined }) {
   // S2.2: si `app.setLoginItemSettings` lanzara, no queremos guardar un
   // estado que no sea real — se aplica antes de persistir.
   if (partial.launchAtStartup !== undefined) {
@@ -210,9 +177,6 @@ function applySettings(partial: {
   settingsStore.update({
     ...(partial.theme !== undefined ? { theme: partial.theme } : {}),
     ...(partial.launchAtStartup !== undefined ? { launchAtStartup: partial.launchAtStartup } : {}),
-    ...(partial.applySigningKeyOnSwitch !== undefined
-      ? { applySigningKeyOnSwitch: partial.applySigningKeyOnSwitch }
-      : {}),
   })
   const updated = getSettingsForRenderer()
   // S10.2: el menú se reconstruye en cada cambio, no solo al iniciar —
@@ -226,40 +190,23 @@ ipcMain.handle(IPC.setSettings, (_event, payload: unknown) => {
   return applySettings(partial)
 })
 
-// 09-cambio-de-cuenta-bandeja (R2): un solo lugar junta los tres datos que
-// necesita el menú — settings, cuentas y la activa — para no repetirlo en
-// cada llamador (settings, vincular cuenta, cambio de cuenta).
 function refreshTrayMenu(): void {
-  mb.setContextMenu(buildTrayMenu(getSettingsForRenderer(), accountsStore.list(), stateStore.getActiveId()))
+  mb.setContextMenu(buildTrayMenu(getSettingsForRenderer()))
 }
 
-/** S10: mismas opciones que Ajustes, para cambiarlas sin abrir la ventana. */
-function buildTrayMenu(
-  settings: ReturnType<typeof getSettingsForRenderer>,
-  accounts: Account[],
-  activeId: string | undefined
-) {
+// Hallazgo real (feedback directo probando la app, 09-cambio-de-cuenta-
+// bandeja): se probó un submenú "Cuentas vinculadas" en la bandeja para
+// cambiar la cuenta por defecto de carpetas sin fijar. El usuario lo usa
+// en vivo y pide sacarlo — en su flujo real todo está fijado, el concepto
+// de "cuenta por defecto" no aporta nada ahí, y cualquier forma de
+// marcarla (radio, texto "en uso") sugiere una exclusividad que no
+// corresponde ("activa" para el usuario = "vinculada", todas a la vez).
+// También se sacó "Inicio con Windows" de acá: sigue disponible en
+// Ajustes, no hace falta duplicarlo en un menú que ahora es mínimo.
+// Menú final, deliberadamente simple: Abrir / Tema / Salir.
+function buildTrayMenu(settings: ReturnType<typeof getSettingsForRenderer>) {
   return Menu.buildFromTemplate([
     { label: 'Abrir', click: () => mb.showWindow() },
-    { type: 'separator' },
-    {
-      label: 'Cuenta activa',
-      // R2.4 (09-cambio-de-cuenta-bandeja): con cero cuentas, deshabilitado
-      // en vez de romper — nunca un submenú vacío que confunda.
-      enabled: accounts.length > 0,
-      submenu: accounts.map((account) => ({
-        label: account.label,
-        type: 'radio' as const,
-        checked: account.id === activeId,
-        click: () => {
-          // R4: un click de Menu nativo no tiene promesa que el renderer
-          // pueda mostrar — el único canal disponible acá es el log.
-          void selectAccount(account.id)
-            .catch((err: unknown) => log.error('no se pudo cambiar de cuenta desde la bandeja', err))
-            .finally(() => refreshTrayMenu())
-        },
-      })),
-    },
     { type: 'separator' },
     {
       label: 'Tema',
@@ -269,12 +216,6 @@ function buildTrayMenu(
         checked: settings.theme === theme,
         click: () => applySettings({ theme }),
       })),
-    },
-    {
-      label: 'Inicio con Windows',
-      type: 'checkbox',
-      checked: settings.launchAtStartup,
-      click: (item) => applySettings({ launchAtStartup: item.checked }),
     },
     { type: 'separator' },
     { label: 'Salir', click: () => app.quit() },

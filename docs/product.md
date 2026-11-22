@@ -30,7 +30,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Vincular cuentas — diálogos reales de GitHub (Device Flow) y GitLab (PAT) desde la pantalla principal (`docs/specs/changes/archivados/04-vincular-cuenta-github-gitlab/`)
 - [x] Guardar y borrar tokens en GCM, con verificación `approve` → `fill` — confirmado contra GCM real
 - [ ] GCM detectado y usable, con estado claro cuando falte
-- [ ] Cambio de cuenta activa con un clic desde la bandeja
+- [x] ~~Cambio de cuenta activa con un clic desde la bandeja~~ — construido y mergeado (`docs/specs/changes/archivados/09-cambio-de-cuenta-bandeja/`), pero sacado el mismo día: probado en vivo con el usuario real, "cuenta activa" no resuelve nada en su flujo (todo lo que usa está fijado a una cuenta) — ver `docs/lessons/README.md`. El concepto entero se sacó de la UI (bandeja y pantalla principal) y el código muerto resultante (`core/features/identity`: `setActiveAccount`, `writeSigningKey`) se borró
 - [x] Identidad y cuenta HTTPS por carpeta con `includeIf` — confirmado
 - [ ] Etiquetas editables
 - [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
@@ -43,7 +43,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
 - [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`
 - [x] ~~Reglas por carpeta accesibles desde Ajustes~~ — decisión revisada de nuevo al usar la app: terminó siendo al revés, un diálogo por cuenta desde la pantalla principal (`AccountFoldersDialog`), no una sección en Ajustes
-- [x] Alcance al cambiar de cuenta activa: interruptor en Ajustes para aplicar también la clave de firma de la cuenta (si tiene una asignada) — sin UI todavía para asignar esa clave a una cuenta
+- [ ] ~~Interruptor en Ajustes para aplicar la clave de firma al cambiar de cuenta activa~~ — decisión revisada al sacar "cuenta activa" de la app (ver arriba): la clave de firma debería ser **parte del perfil de la cuenta** (`writeAccountProfile`, junto a `user.name`/`user.email`), no algo atado a un switch global. Así, cualquier carpeta fijada a esa cuenta firma automáticamente con su clave — mismo mecanismo que ya resuelve identidad por carpeta, sin ningún concepto de "activa". Sigue sin existir la UI para asignarle una clave a una cuenta (paso previo necesario); el switch viejo (atado al diseño anterior) se sacó de Ajustes
 - [x] ~~Carpeta base por defecto para Quick Clone, y si la cuenta activa queda aislada~~ — decisión revisada: Quick Clone va a pedir carpeta y cuenta en el momento de clonar, no desde una preferencia global; se sacó de `Settings`
 - [x] Atajo de teclado global para abrir/ocultar la ventana (`Ctrl+Shift+D`)
 - [x] Mantenimiento de credenciales: limpia entradas huérfanas que GCM tiene guardadas (solo las que Dossier reconoce como propias)

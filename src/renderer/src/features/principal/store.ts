@@ -46,16 +46,11 @@ export async function loadState(): Promise<void> {
   applyState(await window.dossier.getState())
 }
 
-export async function selectAccount(id: string): Promise<void> {
-  applyState(await window.dossier.selectAccount(id))
-}
-
 export const $screen = atom<'principal' | 'ajustes'>('principal')
 
 export const $settings = atom<Settings>({
   theme: 'sistema',
   launchAtStartup: false,
-  applySigningKeyOnSwitch: false,
 })
 
 // S3.3 (design.md): una sola fuente de verdad para aplicar el tema — nunca

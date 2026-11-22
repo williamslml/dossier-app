@@ -4,7 +4,6 @@
  */
 export const IPC = {
   getState: 'getState',
-  selectAccount: 'selectAccount',
   hideWindow: 'hideWindow',
   minimizeWindow: 'minimizeWindow',
   startGithubLink: 'startGithubLink',

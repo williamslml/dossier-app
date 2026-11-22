@@ -237,38 +237,13 @@
       }
       .account-card:hover {
         background-color: var(--surface-subtle);
-        border-color: var(--border-hover);
-      }
-      .account-card.selected {
         border-color: var(--fg);
-        background-color: var(--surface-subtle);
-        box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
       }
       .account-left {
         display: flex;
         align-items: center;
         gap: 10px;
         min-width: 0;
-      }
-      .radio-dot {
-        width: 16px;
-        height: 16px;
-        border-radius: 50%;
-        border: 2px solid var(--border-hover);
-        flex-shrink: 0;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .radio-dot.checked {
-        border-color: var(--fg);
-      }
-      .radio-dot.checked::after {
-        content: '';
-        width: 8px;
-        height: 8px;
-        border-radius: 50%;
-        background-color: var(--fg);
       }
       .avatar {
         width: 32px;
@@ -338,26 +313,6 @@
         align-items: center;
         gap: 6px;
         flex-shrink: 0;
-      }
-      .status-badge {
-        font-size: 11px;
-        padding: 3px 10px;
-        border-radius: 6px;
-        font-weight: 500;
-        transition: all 0.15s ease;
-      }
-      .selected .status-badge {
-        background-color: var(--brand-fill);
-        color: var(--fg-inverse);
-      }
-      .account-card:not(.selected) .status-badge {
-        background-color: var(--surface-app);
-        border: 1px solid var(--border);
-        color: var(--fg-muted);
-      }
-      .account-card:not(.selected):hover .status-badge {
-        border-color: var(--border-hover);
-        color: var(--fg);
       }
 
       /* Botones de acción principales */
@@ -522,27 +477,6 @@
         color: var(--fg-subtle);
         text-transform: uppercase;
         letter-spacing: 0.04em;
-      }
-      .settings-section--muted h3 {
-        color: var(--fg-subtle);
-      }
-      .settings-section--muted .settings-about {
-        color: var(--fg-faint);
-      }
-      .section-header {
-        display: flex;
-        align-items: center;
-        gap: 8px;
-      }
-      .badge {
-        font-size: 10.5px;
-        font-weight: 500;
-        color: var(--fg-muted);
-        background-color: var(--surface-subtle);
-        border: 1px solid var(--border);
-        border-radius: 9999px;
-        padding: 2px 8px;
-        line-height: 1.5;
       }
       .theme-options {
         display: flex;
@@ -1121,20 +1055,6 @@
         <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242" />
         <path d="M12 12v9" />
         <path d="m8 17 4 4 4-4" />
-      </symbol>
-      <symbol
-        id="icon-pin"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="currentColor"
-        stroke-width="2"
-        stroke-linecap="round"
-        stroke-linejoin="round"
-      >
-        <line x1="12" x2="12" y1="17" y2="22" />
-        <path
-          d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"
-        />
       </symbol>
     </svg>
 

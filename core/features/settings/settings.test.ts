@@ -14,7 +14,6 @@ let store: SettingsStore
 const DEFAULTS = {
   theme: 'sistema',
   launchAtStartup: false,
-  applySigningKeyOnSwitch: false,
 } as const
 
 beforeEach(() => {
@@ -36,10 +35,5 @@ describe('settings (S1)', () => {
     store.update({ theme: 'claro', launchAtStartup: true })
     const reread = createSettingsStore({ cwd })
     expect(reread.get()).toEqual({ ...DEFAULTS, theme: 'claro', launchAtStartup: true })
-  })
-
-  it('actualiza applySigningKeyOnSwitch sin tocar el resto (S6.1, 05-ajustes)', () => {
-    store.update({ applySigningKeyOnSwitch: true })
-    expect(store.get()).toEqual({ ...DEFAULTS, applySigningKeyOnSwitch: true })
   })
 })

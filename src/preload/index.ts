@@ -31,7 +31,6 @@ export interface DossierState {
 
 export interface DossierApi {
   getState(): Promise<DossierState>
-  selectAccount(id: string): Promise<DossierState>
   hideWindow(): Promise<void>
   minimizeWindow(): Promise<void>
   startGithubLink(label: string): Promise<DossierState>
@@ -63,7 +62,6 @@ export interface DossierApi {
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
 const api: DossierApi = {
   getState: () => ipcRenderer.invoke(IPC.getState),
-  selectAccount: (id: string) => ipcRenderer.invoke(IPC.selectAccount, id),
   hideWindow: () => ipcRenderer.invoke(IPC.hideWindow),
   minimizeWindow: () => ipcRenderer.invoke(IPC.minimizeWindow),
   startGithubLink: (label: string) => ipcRenderer.invoke(IPC.startGithubLink, { label }),

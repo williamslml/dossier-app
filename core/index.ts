@@ -23,13 +23,7 @@ export {
   updateRegion,
 } from './features/gitconfig/region.ts'
 
-export {
-  getActiveConfigPath,
-  getProfilePath,
-  setActiveAccount,
-  writeAccountProfile,
-  writeSigningKey,
-} from './features/identity/identity.ts'
+export { getActiveConfigPath, getProfilePath, writeAccountProfile } from './features/identity/identity.ts'
 
 export type { Account, AccountsStore, RemovedAccountRef } from './features/accounts/accounts.ts'
 export { createAccountsStore } from './features/accounts/accounts.ts'

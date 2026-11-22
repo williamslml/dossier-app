@@ -7,7 +7,6 @@ import {
   loadIdentityConflicts,
   loadSettings,
   loadState,
-  selectAccount,
   subscribeIdentityConflicts,
   subscribeThemeUpdates,
 } from './store.ts'
@@ -86,8 +85,6 @@ export function App() {
                   <AccountCard
                     key={account.id}
                     account={account}
-                    selected={account.id === state.activeId}
-                    onSelect={(id) => void selectAccount(id)}
                     onManageFolders={setFoldersForAccountId}
                   />
                 ))}

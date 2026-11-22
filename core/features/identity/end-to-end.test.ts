@@ -8,34 +8,19 @@ import type { Account } from '../accounts/accounts.ts'
 import { createRulesStore } from '../rules/rules.ts'
 import { normalizeGitdirPattern, renderIncludeIfBlock } from '../gitconfig/gitconfig.ts'
 import { ensureActiveInclude, removeIncludeIfBlock, updateRegion } from '../gitconfig/region.ts'
-import {
-  getActiveConfigPath,
-  getProfilePath,
-  setActiveAccount,
-  writeAccountProfile,
-} from './identity.ts'
+import { getActiveConfigPath, getProfilePath, writeAccountProfile } from './identity.ts'
 
-// Verificación en vivo de M1-M6 juntos (requirements.md) — exactamente lo
-// que hacen selectAccount/pinFolder/unpinFolder en main/index.ts, pero
-// llamando las funciones de core directo (todavía no hay UI conectada a
-// estos IPC — fuera de alcance de este change, ver proposal.md). Config
-// global y dataDir de prueba, nunca ~/.gitconfig ni ~/.dossier reales.
+// Verificación en vivo de M1, M2, M6 juntos (requirements.md) — exactamente
+// lo que hacen pinFolder/unpinFolder en main/index.ts, pero llamando las
+// funciones de core directo (todavía no hay UI conectada a estos IPC —
+// fuera de alcance de este change, ver proposal.md). Config global y
+// dataDir de prueba, nunca ~/.gitconfig ni ~/.dossier reales.
 
 let dataDir: string
 let globalConfigPath: string
 let folderA: string
 let folderB: string
 let folderSinFijar: string
-
-const cuentaActiva: Account = {
-  id: 'activa',
-  provider: 'github',
-  host: 'github.com',
-  label: 'Activa',
-  username: 'usuario-activo',
-  name: 'Usuario Activo',
-  email: 'activo@users.noreply.github.com',
-}
 
 const cuentaFijada: Account = {
   id: 'fijada',
@@ -45,6 +30,16 @@ const cuentaFijada: Account = {
   username: 'usuario-fijado',
   name: 'Usuario Fijado',
   email: 'fijado@users.noreply.gitlab.com',
+}
+
+const cuentaB: Account = {
+  id: 'cuenta-b',
+  provider: 'github',
+  host: 'github.com',
+  label: 'Cuenta B',
+  username: 'usuario-b',
+  name: 'Usuario B',
+  email: 'b@users.noreply.github.com',
 }
 
 async function gitConfigGet(cwd: string, key: string): Promise<string | undefined> {
@@ -75,20 +70,10 @@ beforeEach(async () => {
 })
 
 describe('motor de identidad, de punta a punta', () => {
-  it('activar una cuenta cambia la identidad en una carpeta sin fijar (M4, M5)', async () => {
+  it('una carpeta fijada usa su propia cuenta; una carpeta sin fijar no se ve afectada (M6)', async () => {
     updateRegion(globalConfigPath, (region) =>
       ensureActiveInclude(region, getActiveConfigPath(dataDir)),
     )
-    await setActiveAccount(dataDir, cuentaActiva)
-
-    expect(await gitConfigGet(folderSinFijar, 'user.email')).toBe(cuentaActiva.email)
-  })
-
-  it('una carpeta fijada usa su propia cuenta, sin importar cuál esté activa (M6)', async () => {
-    updateRegion(globalConfigPath, (region) =>
-      ensureActiveInclude(region, getActiveConfigPath(dataDir)),
-    )
-    await setActiveAccount(dataDir, cuentaActiva)
 
     await writeAccountProfile(dataDir, cuentaFijada)
     const block = await renderIncludeIfBlock(
@@ -98,14 +83,13 @@ describe('motor de identidad, de punta a punta', () => {
     updateRegion(globalConfigPath, (region) => `${region}\n${block}`.trim())
 
     expect(await gitConfigGet(folderA, 'user.email')).toBe(cuentaFijada.email)
-    expect(await gitConfigGet(folderSinFijar, 'user.email')).toBe(cuentaActiva.email)
+    expect(await gitConfigGet(folderSinFijar, 'user.email')).toBeUndefined()
   })
 
-  it('desfijar una carpeta hace que vuelva a resolver la cuenta activa (M6.2)', async () => {
+  it('desfijar una carpeta la deja sin la identidad de la cuenta que tenía (M6.2)', async () => {
     updateRegion(globalConfigPath, (region) =>
       ensureActiveInclude(region, getActiveConfigPath(dataDir)),
     )
-    await setActiveAccount(dataDir, cuentaActiva)
     await writeAccountProfile(dataDir, cuentaFijada)
     const block = await renderIncludeIfBlock(
       `${folderA}/`,
@@ -116,7 +100,7 @@ describe('motor de identidad, de punta a punta', () => {
 
     updateRegion(globalConfigPath, (region) => removeIncludeIfBlock(region, `${folderA}/`))
 
-    expect(await gitConfigGet(folderA, 'user.email')).toBe(cuentaActiva.email)
+    expect(await gitConfigGet(folderA, 'user.email')).toBeUndefined()
   })
 
   it('con las carpetas A y B fijadas a cuentas distintas, cada una resuelve la suya (rulesStore + FolderOverlapError real)', async () => {
@@ -131,12 +115,12 @@ describe('motor de identidad, de punta a punta', () => {
       email: cuentaFijada.email,
     })
     const accountB = accountsStore.create({
-      provider: cuentaActiva.provider,
-      host: cuentaActiva.host,
-      label: cuentaActiva.label,
-      username: cuentaActiva.username,
-      name: cuentaActiva.name,
-      email: cuentaActiva.email,
+      provider: cuentaB.provider,
+      host: cuentaB.host,
+      label: cuentaB.label,
+      username: cuentaB.username,
+      name: cuentaB.name,
+      email: cuentaB.email,
     })
 
     await writeAccountProfile(dataDir, accountA)

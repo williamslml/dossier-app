@@ -25,13 +25,9 @@ function initials(label: string): string {
 
 export function AccountCard({
   account,
-  selected,
-  onSelect,
   onManageFolders,
 }: {
   account: Account
-  selected: boolean
-  onSelect: (id: string) => void
   onManageFolders: (id: string) => void
 }) {
   const providerIcon = account.provider === 'github' ? '#icon-github' : '#icon-gitlab'
@@ -39,9 +35,8 @@ export function AccountCard({
   const iconStyle = account.provider === 'gitlab' ? { color: '#fc6d26' } : undefined
 
   return (
-    <div class={`account-card ${selected ? 'selected' : ''}`} onClick={() => onSelect(account.id)}>
+    <div class="account-card" onClick={() => onManageFolders(account.id)}>
       <div class="account-left">
-        <span class={`radio-dot ${selected ? 'checked' : ''}`} aria-hidden="true" />
         <div class="avatar" style={{ backgroundColor: avatarColor(account.label) }}>
           {initials(account.label)}
         </div>
@@ -56,19 +51,6 @@ export function AccountCard({
         </div>
       </div>
       <div class="account-actions">
-        {selected && <span class="status-badge">En uso</span>}
-        <button
-          class="icon-action-btn"
-          title="Carpetas de esta cuenta"
-          onClick={(e) => {
-            e.stopPropagation()
-            onManageFolders(account.id)
-          }}
-        >
-          <svg width="13" height="13">
-            <use href="#icon-pin" />
-          </svg>
-        </button>
         <button
           class="icon-action-btn delete"
           title="Desvincular cuenta (próximamente)"

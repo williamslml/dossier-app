@@ -13,7 +13,7 @@ import type { Theme } from '../../../../preload/index.ts'
 const THEME_LABEL: Record<Theme, string> = {
   claro: 'Claro',
   oscuro: 'Oscuro',
-  sistema: 'Según el sistema',
+  sistema: 'Sistema',
 }
 
 const THEME_ICON: Record<Theme, string> = {
@@ -93,32 +93,6 @@ function MantenimientoCredenciales() {
   )
 }
 
-function Proximamente() {
-  const settings = useStore($settings)
-
-  return (
-    <section class="settings-section settings-section--muted">
-      <div class="section-header">
-        <h3>Próximamente</h3>
-        <span class="badge">En desarrollo</span>
-      </div>
-      <div class="settings-group">
-        <label class="settings-toggle-row">
-          <span>Firmar commits con la clave de la cuenta</span>
-          <input
-            type="checkbox"
-            class="toggle-switch"
-            checked={settings.applySigningKeyOnSwitch}
-            onChange={(event) =>
-              void updateSettings({ applySigningKeyOnSwitch: event.currentTarget.checked })
-            }
-          />
-        </label>
-      </div>
-    </section>
-  )
-}
-
 export function Ajustes() {
   const settings = useStore($settings)
   const { version } = useStore($principal)
@@ -175,8 +149,6 @@ export function Ajustes() {
       </section>
 
       <MantenimientoCredenciales />
-
-      <Proximamente />
 
       <div class="about-row">
         <span class="about-row-label">Acerca de</span>
