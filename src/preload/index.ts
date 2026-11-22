@@ -4,6 +4,7 @@ import type {
   Account,
   ConflictRecord,
   CredentialStatus,
+  DoctorCheck,
   GithubVerification,
   OrphanedCredential,
   Rule,
@@ -15,6 +16,7 @@ export type {
   Account,
   ConflictRecord,
   CredentialStatus,
+  DoctorCheck,
   GithubVerification,
   OrphanedCredential,
   Rule,
@@ -61,6 +63,7 @@ export interface DossierApi {
   cloneRepo(data: { url: string; destPath: string; accountId: string }): Promise<Rule>
   getCredentialStatus(): Promise<CredentialStatus>
   recheckCredentials(): Promise<CredentialStatus>
+  runDoctor(): Promise<DoctorCheck[]>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -109,6 +112,7 @@ const api: DossierApi = {
     ipcRenderer.invoke(IPC.cloneRepo, data),
   getCredentialStatus: () => ipcRenderer.invoke(IPC.getCredentialStatus),
   recheckCredentials: () => ipcRenderer.invoke(IPC.recheckCredentials),
+  runDoctor: () => ipcRenderer.invoke(IPC.runDoctor),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

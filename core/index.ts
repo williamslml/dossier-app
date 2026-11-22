@@ -68,3 +68,6 @@ export {
 
 export type { CloneAccount } from './features/clone/clone.ts'
 export { cloneRepo, InvalidCloneUrlError, validateCloneUrl } from './features/clone/clone.ts'
+
+export type { DoctorCheck } from './features/doctor/doctor.ts'
+export { runDoctor } from './features/doctor/doctor.ts'

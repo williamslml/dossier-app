@@ -37,6 +37,7 @@ import {
   findOrphans,
   FolderOverlapError,
   listGithubAccounts,
+  runDoctor,
   runGitCredential,
   type Account,
   type HookName,
@@ -172,6 +173,10 @@ ipcMain.handle(IPC.getSettings, () => getSettingsForRenderer())
 // chequeo, disparado a pedido (p. ej. tras instalar GCM) en vez de al cargar.
 ipcMain.handle(IPC.getCredentialStatus, () => getCredentialStatus())
 ipcMain.handle(IPC.recheckCredentials, () => getCredentialStatus())
+
+// M-Doctor (docs/product.md): un chequeo por carpeta fijada, a pedido —
+// nunca escribe nada, solo lee.
+ipcMain.handle(IPC.runDoctor, () => runDoctor(rulesStore, accountsStore, dataDir))
 
 // S10.3: una sola función aplica el cambio (IPC o menú de la bandeja) —
 // nunca dos caminos separados que puedan desincronizarse.

@@ -1,11 +1,14 @@
 import { useStore } from '@nanostores/preact'
 import { useEffect, useState } from 'preact/hooks'
 import {
+  $doctorChecks,
+  $doctorLoading,
   $orphanedCredentials,
   $principal,
   $settings,
   loadOrphanedCredentials,
   removeOrphanedCredential,
+  runDoctorCheck,
   updateSettings,
 } from './store.ts'
 import type { Theme } from '../../../../preload/index.ts'
@@ -93,6 +96,62 @@ function MantenimientoCredenciales() {
   )
 }
 
+/** M-Doctor (docs/product.md): un chequeo a pedido por carpeta fijada —
+    nunca reactivo como la guardia de identidad, nunca escribe nada. */
+function Doctor() {
+  const checks = useStore($doctorChecks)
+  const loading = useStore($doctorLoading)
+
+  useEffect(() => {
+    void runDoctorCheck()
+  }, [])
+
+  return (
+    <section class="settings-section">
+      <div class="doctor-header">
+        <h3>Doctor</h3>
+        <button
+          type="button"
+          class="btn-secondary doctor-recheck"
+          disabled={loading}
+          onClick={() => void runDoctorCheck()}
+        >
+          Verificar de nuevo
+        </button>
+      </div>
+      {loading && checks.length === 0 ? (
+        <p class="doctor-empty">Verificando…</p>
+      ) : checks.length === 0 ? (
+        <p class="doctor-empty">No hay carpetas fijadas todavía.</p>
+      ) : (
+        <div class="pins-list">
+          {checks.map((check) => (
+            <div class="pin-row" key={check.path}>
+              <div class="pin-info">
+                <span class="pin-path" title={check.path}>
+                  {check.path}
+                </span>
+                <span class="pin-account">
+                  {check.accountLabel}
+                  {!check.hasRepo && ' · sin repo todavía'}
+                </span>
+                {!check.ok && check.detail && <span class="doctor-detail">{check.detail}</span>}
+              </div>
+              <svg
+                width="14"
+                height="14"
+                class={check.ok ? 'doctor-icon-ok' : 'doctor-icon-error'}
+              >
+                <use href={check.ok ? '#icon-check' : '#icon-x'} />
+              </svg>
+            </div>
+          ))}
+        </div>
+      )}
+    </section>
+  )
+}
+
 export function Ajustes() {
   const settings = useStore($settings)
   const { version } = useStore($principal)
@@ -149,6 +208,7 @@ export function Ajustes() {
       </section>
 
       <MantenimientoCredenciales />
+      <Doctor />
 
       <div class="about-row">
         <span class="about-row-label">Acerca de</span>

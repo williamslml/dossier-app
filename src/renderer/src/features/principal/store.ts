@@ -3,6 +3,7 @@ import type {
   Account,
   ConflictRecord,
   CredentialStatus,
+  DoctorCheck,
   DossierState,
   IdentityConflictAction,
   OrphanedCredential,
@@ -156,4 +157,16 @@ export async function loadOrphanedCredentials(): Promise<void> {
 export async function removeOrphanedCredential(host: string, username: string): Promise<void> {
   await window.dossier.removeOrphanedCredential({ host, username })
   await loadOrphanedCredentials()
+}
+
+export const $doctorChecks = atom<DoctorCheck[]>([])
+export const $doctorLoading = atom(false)
+
+export async function runDoctorCheck(): Promise<void> {
+  $doctorLoading.set(true)
+  try {
+    $doctorChecks.set(await window.dossier.runDoctor())
+  } finally {
+    $doctorLoading.set(false)
+  }
 }
