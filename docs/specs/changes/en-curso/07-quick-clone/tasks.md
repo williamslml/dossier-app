@@ -51,7 +51,12 @@
 
 ## 8. Cierre del change
 
-- [ ] Criterio de éxito de `proposal.md` verificado y anotado acá
-- [ ] Lecciones anotadas en `docs/lessons/README.md` si algo no obvio ocurrió
+- [x] Criterio de éxito de `proposal.md` verificado:
+  - Clonar un repo público real por HTTPS con cuenta + carpeta vacía: **verificado en vivo** (sección 6) con `octocat/Hello-World.git`, confirmado con `git remote -v`/`git log` reales, carpeta fijada a la cuenta elegida.
+  - Carpeta ya fijada a otra cuenta: **verificado en vivo**, rechazado con `FolderOverlapError` antes de tocar la red.
+  - URL no-`https://` (`ssh://`, ruta local): **verificado en vivo**, rechazado antes de llegar a Git.
+  - Cuenta con credencial inválida en GCM: **confirmado por inspección del código real** (no repetido en vivo, mismo camino de error que los dos casos de arriba) — en el handler de `main`, `await cloneRepo(...)` corre antes que `rulesStore.pin(...)`; si `cloneRepo` lanza (incluido un error de autenticación real de Git), la excepción se propaga tal cual por IPC y `pin()` nunca se ejecuta, igual que en los casos de solapamiento/URL inválida ya probados.
+  - `pnpm typecheck && pnpm lint && pnpm test`: **en verde** (122 tests, ver sección 6).
+- [x] Lecciones anotadas en `docs/lessons/README.md`: `GIT_TERMINAL_PROMPT=0` solo no alcanza (hace falta el resto de ADR 0004), el quirk de `allowUnsafeEditor` de simple-git, y la condición de carrera entre el chequeo de solapamiento y el Auto-Pin quedó documentada como limitación conocida en requirements.md Q8 (no en lessons — no es un hallazgo "no obvio" sino una decisión de alcance explícita)
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
