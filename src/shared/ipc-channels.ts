@@ -28,6 +28,7 @@ export const IPC = {
   resolveIdentityConflict: 'resolveIdentityConflict',
   cloneRepo: 'cloneRepo',
   runDoctor: 'runDoctor',
+  checkSecretStore: 'checkSecretStore',
   checkGithubCliImport: 'checkGithubCliImport',
   importGithubCliAccount: 'importGithubCliAccount',
 } as const

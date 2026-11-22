@@ -8,6 +8,7 @@ import type {
   GithubVerification,
   OrphanedCredential,
   Rule,
+  SecretStoreHealth,
   Settings,
   Theme,
 } from '../../core/index.ts'
@@ -20,6 +21,7 @@ export type {
   GithubVerification,
   OrphanedCredential,
   Rule,
+  SecretStoreHealth,
   Settings,
   Theme,
 }
@@ -64,6 +66,7 @@ export interface DossierApi {
   getCredentialStatus(): Promise<CredentialStatus>
   recheckCredentials(): Promise<CredentialStatus>
   runDoctor(): Promise<DoctorCheck[]>
+  checkSecretStore(): Promise<SecretStoreHealth>
   checkGithubCliImport(): Promise<{ username: string; name: string; email: string | undefined } | null>
   importGithubCliAccount(label: string): Promise<DossierState>
 }
@@ -115,6 +118,7 @@ const api: DossierApi = {
   getCredentialStatus: () => ipcRenderer.invoke(IPC.getCredentialStatus),
   recheckCredentials: () => ipcRenderer.invoke(IPC.recheckCredentials),
   runDoctor: () => ipcRenderer.invoke(IPC.runDoctor),
+  checkSecretStore: () => ipcRenderer.invoke(IPC.checkSecretStore),
   checkGithubCliImport: () => ipcRenderer.invoke(IPC.checkGithubCliImport),
   importGithubCliAccount: (label: string) =>
     ipcRenderer.invoke(IPC.importGithubCliAccount, { label }),
