@@ -45,6 +45,6 @@ Fix final: `electron-builder --win --publish never` (nunca publica solo, build �
 
 - [x] Criterio de éxito de `proposal.md` verificado: los cuatro puntos quedaron confirmados en la sección 4 de arriba (`pnpm dist:win`, `release.yml` con release en borrador, `electron-updater` detecta/descarga/espera el clic, typecheck/lint/test en verde)
 - [x] Lecciones anotadas en `docs/lessons/README.md`: la de `electron-builder --publish` (versión/carrera/PowerShell/nombre de archivo) y la de `resources/` faltante en el `.asar`
-- [ ] Revisión independiente (sesión separada, `CLAUDE.md`: "firma o publicación de release" es señal de alto riesgo) — pendiente
+- [x] Revisión independiente (sesión separada, `CLAUDE.md`: "firma o publicación de release" es señal de alto riesgo) — encontró 3 hallazgos reales (el clic en cualquier notificación podía instalar la actualización sin pedirlo, voseo en el texto de la notificación, `GH_TOKEN` a nivel de job entero), los tres corregidos y reverificados en vivo con un tag de prueba más
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
