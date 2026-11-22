@@ -20,7 +20,7 @@
 
 ## Riesgos
 
-- **Nunca debe dejar basura de prueba** en el Credential Manager real, pase lo que pase (éxito, error, timeout) — `reject` corre en un `finally`, con su propio catch silencioso (si ni siquiera eso funcionara, el `healthy: false` ya lo habría reportado).
+- **Nunca debe dejar basura de prueba** en el Credential Manager real, pase lo que pase (éxito, error, timeout) — `reject` corre en un `finally`, con su propio catch silencioso. **Riesgo residual conocido** (hallazgo de revisión, no corregido — probabilidad baja): si `approve`+`fill` salieron bien (`healthy: true`) y ese `reject` final falla de forma independiente (p. ej. el almacén momentáneamente bloqueado), la credencial de prueba queda huérfana sin que nada lo reporte — el resultado ya se decidió antes de llegar al `finally`. Aceptado por ahora: host `.invalid` reservado fijo, username/password aleatorios y descartables (nunca una cuenta real), y el chequeo corre solo al clickear "GitHub"/"GitLab", no en cada arranque.
 - **Falso positivo por red/latencia**: el round-trip usa el mismo timeout ya existente de `runGitCredential` (5s) — no hace falta uno nuevo.
 
 ## Criterio de éxito

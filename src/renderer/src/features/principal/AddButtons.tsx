@@ -28,6 +28,10 @@ export function AddButtons() {
         return
       }
       setOpen(dialog)
+    } catch (err) {
+      // checkSecretStoreHealth (core) nunca lanza — esto solo cubriría un
+      // fallo del propio IPC (hallazgo de revisión), no un almacén roto.
+      showToast(err instanceof Error ? err.message : 'No se pudo verificar el almacén de credenciales.')
     } finally {
       setChecking(false)
     }

@@ -211,10 +211,20 @@ export interface SecretStoreHealth {
     choca con cuentas reales), lo relee y confirma que sea el mismo, y
     siempre lo borra al final — nunca deja basura de prueba, pase lo que
     pase. */
-export async function checkSecretStoreHealth(): Promise<SecretStoreHealth> {
-  const host = 'dossier-health-check.invalid'
-  const username = `health-${randomUUID().slice(0, 8)}`
-  const password = `probe-${randomUUID().slice(0, 8)}`
+export interface CheckSecretStoreHealthOptions {
+  /** Solo para tests: fuerza el host/username/password de prueba, para
+      poder confirmar la limpieza desde afuera con un `fill` aparte después
+      (hallazgo de revisión: el test original solo inferia la limpieza de
+      forma indirecta, corriendo el chequeo dos veces). */
+  credential?: { host: string; username: string; password: string }
+}
+
+export async function checkSecretStoreHealth(
+  options: CheckSecretStoreHealthOptions = {},
+): Promise<SecretStoreHealth> {
+  const host = options.credential?.host ?? 'dossier-health-check.invalid'
+  const username = options.credential?.username ?? `health-${randomUUID().slice(0, 8)}`
+  const password = options.credential?.password ?? `probe-${randomUUID().slice(0, 8)}`
   const credential = { protocol: 'https', host, username }
 
   try {

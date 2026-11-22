@@ -108,16 +108,25 @@ describe('checkSecretStoreHealth (GCM real en Windows)', () => {
     expect(result).toEqual({ healthy: true })
   })
 
-  it.runIf(isWindows)('nunca deja basura de prueba en el Credential Manager real', async () => {
-    await checkSecretStoreHealth()
-    // Si reject hubiera fallado en silencio, un segundo "fill" con el mismo
-    // host encontraría la credencial de la corrida anterior — como el
-    // username es aleatorio por corrida, lo único que se puede confirmar
-    // acá es que una segunda corrida también da healthy=true (no quedó el
-    // almacén en un estado roto por la primera).
-    const second = await checkSecretStoreHealth()
-    expect(second).toEqual({ healthy: true })
-  })
+  it.runIf(isWindows)(
+    'nunca deja basura de prueba: un "fill" aparte confirma que "reject" de verdad borró la credencial (hallazgo de revisión)',
+    async () => {
+      // Credencial fija (no la aleatoria interna) para poder confirmarlo
+      // desde afuera, con el mismo mecanismo que ya usa "reject borra solo
+      // la credencial indicada" más abajo en este archivo — no alcanza con
+      // inferirlo corriendo el chequeo dos veces.
+      const host = 'dossier-health-check-cleanup.invalid'
+      const username = `health-cleanup-${suffix}`
+      const password = `probe-cleanup-${suffix}`
+
+      const result = await checkSecretStoreHealth({ credential: { host, username, password } })
+      expect(result).toEqual({ healthy: true })
+
+      await expect(
+        runGitCredential('fill', { protocol: 'https', host, username }),
+      ).rejects.toThrow()
+    },
+  )
 })
 
 describe.skipIf(!isWindows)('git-credential (R3, GCM real en Windows)', () => {
