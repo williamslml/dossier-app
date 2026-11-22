@@ -35,7 +35,7 @@ export type { Account, AccountsStore, RemovedAccountRef } from './features/accou
 export { createAccountsStore } from './features/accounts/accounts.ts'
 
 export type { Rule, RulesStore } from './features/rules/rules.ts'
-export { createRulesStore, FolderOverlapError } from './features/rules/rules.ts'
+export { createRulesStore, findOverlap, FolderOverlapError } from './features/rules/rules.ts'
 
 export type { GithubVerification, LinkedAccount } from './features/providers/github/github.ts'
 export { deriveNoreplyEmail, linkGithub } from './features/providers/github/github.ts'
@@ -69,3 +69,6 @@ export {
   readConflicts,
   uninstallHook,
 } from './features/identity-guard/identity-guard.ts'
+
+export type { CloneAccount } from './features/clone/clone.ts'
+export { cloneRepo, InvalidCloneUrlError, validateCloneUrl } from './features/clone/clone.ts'

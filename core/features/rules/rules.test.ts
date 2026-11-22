@@ -2,8 +2,8 @@ import { mkdtempSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { beforeEach, describe, expect, it } from 'vitest'
-import { createRulesStore, FolderOverlapError } from './rules.ts'
-import type { RulesStore } from './rules.ts'
+import { createRulesStore, findOverlap, FolderOverlapError } from './rules.ts'
+import type { Rule, RulesStore } from './rules.ts'
 
 // M3 (requirements.md): una carpeta solo puede pertenecer a una cuenta
 // (docs/adr/0004-modelo-de-credenciales-e-identidad.md) — "no hay competencia por prefijo".
@@ -91,5 +91,31 @@ describe('rules (M3)', () => {
     store.setEnforced('C:/work/a', true)
     const replaced = store.pin('C:/work/a', 'acc-2')
     expect(replaced.enforced).toBe(true)
+  })
+})
+
+// Q5 (07-quick-clone): el mismo chequeo que ya hace pin() internamente,
+// pero exportado para poder correrlo antes de clonar (no después).
+describe('findOverlap (Q5, 07-quick-clone)', () => {
+  const rule: Rule = { path: 'C:/work/a', accountId: 'acc-1', enforced: false }
+
+  it('encuentra el solapamiento cuando la carpeta nueva está dentro de una ya fijada', () => {
+    expect(findOverlap([rule], 'C:/work/a/sub')).toEqual(rule)
+  })
+
+  it('encuentra el solapamiento cuando la carpeta nueva contiene una ya fijada', () => {
+    expect(findOverlap([rule], 'C:/work')).toEqual(rule)
+  })
+
+  it('no hay solapamiento entre carpetas sin relación', () => {
+    expect(findOverlap([rule], 'C:/work/b')).toBeUndefined()
+  })
+
+  it('el mismo path exacto no es un solapamiento (mismo criterio que pin(), es un reemplazo)', () => {
+    expect(findOverlap([rule], 'C:/work/a')).toBeUndefined()
+  })
+
+  it('sin reglas, nunca hay solapamiento', () => {
+    expect(findOverlap([], 'C:/work/a')).toBeUndefined()
   })
 })

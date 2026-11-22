@@ -49,6 +49,17 @@ function overlaps(a: string, b: string): boolean {
   return a !== b && (a.startsWith(b) || b.startsWith(a))
 }
 
+/** Q5 (07-quick-clone): mismo chequeo que `pin()` ya hacía internamente,
+    exportado para poder correrlo antes de clonar — un clone que ya
+    terminó en disco no se puede "deshacer" tan simple como rechazar antes
+    de empezar. El mismo path exacto no cuenta como solapamiento (mismo
+    criterio que `pin()`: re-fijar el mismo path es un reemplazo, no un
+    conflicto). */
+export function findOverlap(rules: Rule[], path: string): Rule | undefined {
+  const target = normalize(path)
+  return rules.find((r) => overlaps(normalize(r.path), target))
+}
+
 export function createRulesStore(options?: { cwd?: string }): RulesStore {
   const conf = new Conf<Schema>({
     projectName: 'dossier',
@@ -78,7 +89,7 @@ export function createRulesStore(options?: { cwd?: string }): RulesStore {
         return replaced
       }
 
-      const conflict = rules.find((r) => overlaps(normalize(r.path), target))
+      const conflict = findOverlap(rules, path)
       if (conflict) {
         throw new FolderOverlapError(path, conflict.path)
       }

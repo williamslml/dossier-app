@@ -130,6 +130,15 @@ export async function resolveIdentityConflict(
   if (action === 'aplicar') await loadPins()
 }
 
+/** Q4: deja la carpeta clonada ya fijada a la cuenta elegida — recarga
+    `$pins` para que se vea al toque en el diálogo de esa cuenta. Puede
+    rechazar con el mensaje real de Git o con `FolderOverlapError`, el
+    llamador los muestra tal cual (mismo patrón que `pinFolder`). */
+export async function cloneRepo(url: string, destPath: string, accountId: string): Promise<void> {
+  await window.dossier.cloneRepo({ url, destPath, accountId })
+  await loadPins()
+}
+
 export const $orphanedCredentials = atom<OrphanedCredential[]>([])
 
 export async function loadOrphanedCredentials(): Promise<void> {
