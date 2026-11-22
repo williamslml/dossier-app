@@ -25,6 +25,6 @@ Señal de alto riesgo (confirma un token real contra la API y lo guarda en GCM):
 
 ## 5. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo)
-- [ ] Merge con `finishing-a-development-branch`
-- [ ] Mover la spec a `../archivados/`
+- [x] Revisión en sesión separada (señal de alto riesgo) — sin hallazgos bloqueantes. Confirmó (corriendo typecheck/lint/test ella misma, 133 tests en verde) que `checkGithubCliImport` nunca devuelve el token, que `importGithubCliAccount` vuelve a chequear del lado de `main` sin confiar en nada del renderer, que `findGithubCliToken` nunca invoca `gh` real en los tests, que `findImportableGithubCliAccount` confirma de verdad el token contra la API antes de ofrecerlo, que la extracción de `fetchGithubUser` es un refactor puro (sin cambiar el Device Flow existente), y que el cartel nunca vincula sin un clic explícito. Un hallazgo no bloqueante corregido: el `useEffect` que detecta la sesión de `gh` CLI no tenía `.catch` — un token ya inválido (expirado/revocado) quedaba como promesa rechazada sin manejar (mismo patrón que `AddButtons.tsx` ya había corregido para el almacén de secretos). Corregido: se trata como "no hay nada para ofrecer", nunca como error de diálogo
+- [x] Merge con `finishing-a-development-branch` — mergeado localmente a `main` (sin conflictos), `pnpm typecheck && pnpm lint && pnpm test` en verde sobre el resultado, rama `feat/sincronizar-cuentas-previas` borrada
+- [x] Mover la spec a `../archivados/`

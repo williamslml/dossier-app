@@ -28,7 +28,14 @@ export function GithubLinkDialog({
   const [importingCli, setImportingCli] = useState(false)
 
   useEffect(() => {
-    void window.dossier.checkGithubCliImport().then(setCliImport)
+    // Hallazgo de revisión: un token de `gh` ya inválido (expirado,
+    // revocado) hace que esto rechace (C1.4, nunca se oculta el error de
+    // la API) — acá no hay nada que vincular todavía, así que se trata
+    // como "no hay nada para ofrecer", nunca como un error de diálogo.
+    window.dossier
+      .checkGithubCliImport()
+      .then(setCliImport)
+      .catch(() => setCliImport(null))
   }, [])
 
   async function handleImportCli(): Promise<void> {
