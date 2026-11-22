@@ -35,6 +35,6 @@ Nota de alcance de verificación: `src/main/index.ts` es código de integración
 
 - [x] Criterio de éxito de `proposal.md` verificado: con dos cuentas reales, el submenú aparece con las dos, la activa marcada, el clic cambia la identidad real (confirmado con `git config`) y el menú refleja el cambio en el próximo clic derecho; con cero cuentas el menú no rompe; `pnpm typecheck && pnpm lint && pnpm test` en verde. El único punto no repetido en vivo (vincular una cuenta nueva actualiza el menú sin reiniciar) queda aceptado por inspección de código — ver sección 4
 - [x] Lecciones anotadas en `docs/lessons/README.md`: `createAccountsStore()` no usa `dataDir`, usa la ruta por defecto de `Conf`
-- [ ] Revisión en sesión separada (señal de alto riesgo) antes de mergear
+- [x] Revisión en sesión separada (señal de alto riesgo) — agente sin el historial de esta sesión, a partir de spec + diff. Sin hallazgos bloqueantes: confirmó que `selectAccount` es un calco exacto del código anterior, el manejo de error del click nativo nunca deja una promesa sin manejar, el caso de cero cuentas no rompe el menú, los cinco call sites de `refreshTrayMenu()` quedan consistentes, y `writeSigningKey` sigue condicionado por `applySigningKeyOnSwitch`. Dos notas informativas, ninguna requiere cambio (confirmadas como comportamiento preexistente o ya documentado, no bugs)
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
