@@ -73,16 +73,21 @@ async function checkRule(
       ['-C', rule.path, 'config', '--get', `credential.${account.host}.username`],
       env,
     )
-    const ok = actualEmail === account.email && actualUsername === account.username
+    const mismatches: string[] = []
+    if (actualEmail !== account.email) {
+      mismatches.push(`user.email="${actualEmail ?? '(sin configurar)'}" (se esperaba "${account.email}")`)
+    }
+    if (actualUsername !== account.username) {
+      mismatches.push(
+        `credential.${account.host}.username="${actualUsername ?? '(sin configurar)'}" (se esperaba "${account.username}")`,
+      )
+    }
+    const ok = mismatches.length === 0
     return {
       ...base,
       hasRepo: true,
       ok,
-      ...(ok
-        ? {}
-        : {
-            detail: `Git resuelve user.email="${actualEmail ?? '(sin configurar)'}" acá; esta carpeta está fijada a "${account.email}".`,
-          }),
+      ...(ok ? {} : { detail: `Git resuelve ${mismatches.join('; ')} acá.` }),
     }
   }
 

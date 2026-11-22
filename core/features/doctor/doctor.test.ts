@@ -93,6 +93,27 @@ describe('runDoctor', () => {
     expect(results[0]?.detail).toMatch(/doctor@users\.noreply\.github\.com/)
   })
 
+  it('un desajuste solo en credential.<host>.username (sin tocar user.email) se reporta sin mencionar el email como si también estuviera mal (hallazgo de revisión)', async () => {
+    const accountsStore = createAccountsStore({ cwd: dataDir })
+    const rulesStore = createRulesStore({ cwd: dataDir })
+    const created = accountsStore.create(cuenta)
+    await writeAccountProfile(dataDir, created)
+    rulesStore.pin(folderConRepo, created.id)
+    const { writeIncludeIf } = await import('../gitconfig/gitconfig.ts')
+    const { getProfilePath } = await import('../identity/identity.ts')
+    await writeIncludeIf(globalConfigPath, folderConRepo, getProfilePath(dataDir, created.id))
+
+    // user.email queda igual (resuelve bien); solo la config local pisa el
+    // username de credencial — el único desajuste real es ese.
+    await simpleGit(folderConRepo).addConfig(`credential.${cuenta.host}.username`, 'otro-usuario')
+
+    const results = await runDoctor(rulesStore, accountsStore, dataDir, { env })
+    expect(results).toHaveLength(1)
+    expect(results[0]?.ok).toBe(false)
+    expect(results[0]?.detail).toMatch(/otro-usuario/)
+    expect(results[0]?.detail).not.toMatch(/user\.email/)
+  })
+
   it('una carpeta sin repo todavía, con el perfil generado correcto, da ok=true, hasRepo=false', async () => {
     const accountsStore = createAccountsStore({ cwd: dataDir })
     const rulesStore = createRulesStore({ cwd: dataDir })
