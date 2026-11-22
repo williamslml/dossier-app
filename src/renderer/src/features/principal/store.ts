@@ -44,6 +44,10 @@ export async function loadState(): Promise<void> {
   applyState(await window.dossier.getState())
 }
 
+export async function renameAccount(id: string, label: string): Promise<void> {
+  applyState(await window.dossier.renameAccount({ id, label }))
+}
+
 export const $screen = atom<'principal' | 'ajustes'>('principal')
 
 export const $settings = atom<Settings>({

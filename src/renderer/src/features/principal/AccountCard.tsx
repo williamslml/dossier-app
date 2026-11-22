@@ -1,4 +1,6 @@
+import { useState } from 'preact/hooks'
 import type { Account } from '../../../../preload/index.ts'
+import { renameAccount, showToast } from './store.ts'
 
 // Paleta fija para el avatar de iniciales — determinística por cuenta
 // (misma cuenta, mismo color, sin tener que guardar nada nuevo).
@@ -34,6 +36,34 @@ export function AccountCard({
   const providerName = account.provider === 'github' ? 'GitHub' : 'GitLab'
   const iconStyle = account.provider === 'gitlab' ? { color: '#fc6d26' } : undefined
 
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(account.label)
+  const [saving, setSaving] = useState(false)
+
+  function startEditing(e: Event): void {
+    e.stopPropagation()
+    setDraft(account.label)
+    setEditing(true)
+  }
+
+  async function commit(): Promise<void> {
+    const next = draft.trim()
+    if (!next || next === account.label) {
+      setEditing(false)
+      return
+    }
+    setSaving(true)
+    try {
+      await renameAccount(account.id, next)
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : 'No se pudo renombrar la cuenta.')
+      setDraft(account.label)
+    } finally {
+      setSaving(false)
+      setEditing(false)
+    }
+  }
+
   return (
     <div class="account-card" onClick={() => onManageFolders(account.id)}>
       <div class="account-left">
@@ -41,7 +71,26 @@ export function AccountCard({
           {initials(account.label)}
         </div>
         <div class="account-info">
-          <h4 title={account.username}>{account.label}</h4>
+          {editing ? (
+            <input
+              class="account-label-input"
+              value={draft}
+              disabled={saving}
+              onClick={(e) => e.stopPropagation()}
+              onInput={(e) => setDraft((e.target as HTMLInputElement).value)}
+              onBlur={() => void commit()}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') void commit()
+                else if (e.key === 'Escape') setEditing(false)
+              }}
+              ref={(el) => {
+                el?.focus()
+                el?.select()
+              }}
+            />
+          ) : (
+            <h4 title={account.username}>{account.label}</h4>
+          )}
           <div class="account-meta">
             <svg width="11" height="11" style={iconStyle}>
               <use href={providerIcon} />
@@ -51,6 +100,15 @@ export function AccountCard({
         </div>
       </div>
       <div class="account-actions">
+        <button
+          class="icon-action-btn"
+          title="Renombrar cuenta"
+          onClick={startEditing}
+        >
+          <svg width="13" height="13">
+            <use href="#icon-edit" />
+          </svg>
+        </button>
         <button
           class="icon-action-btn delete"
           title="Desvincular cuenta (próximamente)"

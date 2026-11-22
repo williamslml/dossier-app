@@ -36,6 +36,7 @@ export interface DossierApi {
   /** Devuelve una función para des-suscribirse (design.md). */
   onGithubVerification(callback: (verification: GithubVerification) => void): () => void
   linkGitlab(data: { label: string; host: string; token: string }): Promise<DossierState>
+  renameAccount(data: { id: string; label: string }): Promise<DossierState>
   openExternal(url: string): Promise<void>
   getSettings(): Promise<Settings & { shouldUseDarkColors: boolean }>
   setSettings(partial: Partial<Settings>): Promise<Settings & { shouldUseDarkColors: boolean }>
@@ -71,6 +72,8 @@ const api: DossierApi = {
     return () => ipcRenderer.removeListener(IPC.githubVerification, listener)
   },
   linkGitlab: (data) => ipcRenderer.invoke(IPC.linkGitlab, data),
+  renameAccount: (data: { id: string; label: string }) =>
+    ipcRenderer.invoke(IPC.renameAccount, data),
   openExternal: (url: string) => ipcRenderer.invoke(IPC.openExternal, { url }),
   getSettings: () => ipcRenderer.invoke(IPC.getSettings),
   setSettings: (partial: Partial<Settings>) => ipcRenderer.invoke(IPC.setSettings, partial),

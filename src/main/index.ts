@@ -116,6 +116,7 @@ const removeOrphanedCredentialSchema = z.object({
   username: z.string().min(1),
 })
 const setEnforcedSchema = z.object({ path: z.string().min(1), enforced: z.boolean() })
+const renameAccountSchema = z.object({ id: z.string().min(1), label: z.string().trim().min(1) })
 const resolveIdentityConflictSchema = z.object({
   repoPath: z.string().min(1),
   action: z.enum(['aplicar', 'bloquear', 'reconectar']),
@@ -149,6 +150,12 @@ ipcMain.handle(IPC.linkGitlab, async (_event, payload: unknown) => {
   const { label, host, token } = linkGitlabSchema.parse(payload)
   const account = await linkGitlabAccount(accountsStore, label, host, token)
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  return getState()
+})
+
+ipcMain.handle(IPC.renameAccount, (_event, payload: unknown) => {
+  const { id, label } = renameAccountSchema.parse(payload)
+  accountsStore.rename(id, label)
   return getState()
 })
 

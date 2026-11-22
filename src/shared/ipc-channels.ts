@@ -20,6 +20,7 @@ export const IPC = {
   listOrphanedCredentials: 'listOrphanedCredentials',
   removeOrphanedCredential: 'removeOrphanedCredential',
   setEnforced: 'setEnforced',
+  renameAccount: 'renameAccount',
   listIdentityConflicts: 'listIdentityConflicts',
   identityConflictsUpdated: 'identityConflictsUpdated',
   resolveIdentityConflict: 'resolveIdentityConflict',

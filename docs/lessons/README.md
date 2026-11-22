@@ -342,6 +342,21 @@ Aplica cuando: una funcionalidad ya implementada y revisada se prueba en vivo co
 
 **Hallazgo real relacionado, encontrado en el camino:** la carpeta del propio proyecto (`dossier-app`) nunca estuvo fijada a ninguna cuenta — por diseño, cualquier carpeta sin fijar depende del fallback global ("cuenta activa"). Probar el cambio de cuenta activa le cambió la identidad de Git a la carpeta del propio repo (confirmado: los commits de esa sesión quedaron firmados con la cuenta de prueba, no con el usuario real) — un efecto secundario real de un cambio que en ese momento parecía inocuo ("solo estoy probando una UI"). Se corrigió reescribiendo `active.gitconfig` a mano (ya no hay UI para hacerlo) y recreando los commits mal firmados con `git cherry-pick -n` + `git commit --author` (nunca `--reset-author`: no existe como flag de `cherry-pick` en git 2.52, a pesar de la intuición/memoria de que sí). **Para la próxima vez:** antes de probar en vivo un cambio de identidad activa, confirmar primero si la carpeta de trabajo actual (la del propio proyecto, si se está trabajando sobre él) está fijada o no — si no lo está, cualquier prueba le pega directo.
 
+---
+
+# Se puede automatizar la verificación en vivo de la UI con Playwright (`_electron`), sin pedirle al usuario que la pruebe a mano
+
+Aplica cuando: hace falta verificar en vivo un cambio de UI (clic, input, persistencia) y no hay forma de interactuar con la ventana de otra manera en esta sesión.
+
+Para `11-etiquetas-editables` se instaló `playwright-core` de forma aislada (en el directorio de scratchpad de la sesión, nunca como dependencia del proyecto) y se escribió un script chico que lanza la app real (`_electron.launch({ executablePath: 'node_modules/electron/dist/electron.exe', args: [APP_DIR] })`), interactúa con el DOM real (clic en el ícono de editar, `fill` + `Enter` en el input) y lee el estado real vía `page.evaluate(() => window.dossier.getState())` — la misma API que usa el renderer, sin inventar un atajo nuevo. Dos hallazgos:
+
+1. **`electron-menubar` crea la ventana de forma perezosa** (solo al mostrarla con un clic real en la bandeja) — Playwright nunca ve ninguna ventana (`app.windows()` vacío, `firstWindow()` cuelga) si no se fuerza. Ya existía `DOSSIER_SHOW_ON_START` en `main/index.ts` (pensada "solo para pruebas manuales/verificación") — pasarla como variable de entorno al `launch()` alcanza.
+2. **Un selector por el `label` de la cuenta se rompe apenas arranca la edición**: el `<h4>` con el texto se reemplaza por un `<input>` (cuyo `value` no cuenta como texto para `hasText`/`innerText`), así que `locator('.account-card', { hasText: <label> })` deja de encontrar la tarjeta en pleno flujo de edición. Un selector por algo que **no cambia durante la edición** (acá, el nombre del proveedor en `.account-meta`, "GitHub"/"GitLab") es estable de punta a punta.
+
+Como esto corre contra la app real (cuentas y credenciales reales, no un sandbox), la cuenta usada para probar se renombró primero a un valor obviamente temporal (`"<label>-VERIFICACION-TEMP"`), se confirmó el cambio y su persistencia (cerrando y reabriendo la app, proceso nuevo de Electron), y recién después se revirtió al valor original **por el mismo camino de UI**, confirmando otra vez que el valor restaurado también persiste — nunca se editó `accounts.json` a mano para revertir. Se confirmó al final que el estado completo (no solo el campo tocado) quedó idéntico al original, y que no quedó ningún proceso de Electron de prueba corriendo.
+
+**Para la próxima vez:** este patrón (Playwright `_electron` + `playwright-core` instalado aparte en el scratchpad + `window.dossier.getState()` para leer, nunca inventar un acceso nuevo) sirve para cualquier verificación en vivo futura de este proyecto donde no se pueda pedirle al usuario que pruebe a mano. Si algo similar se repite, vale la pena promoverlo a un script dentro del repo (`.claude/skills/` o similar) en vez de rehacerlo cada vez.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
