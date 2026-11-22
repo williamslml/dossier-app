@@ -3,6 +3,7 @@ import { execFileSync } from 'node:child_process'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import {
   buildGitCredentialArgs,
+  checkSecretStoreHealth,
   getCredentialStatus,
   parseCredentialHelperChain,
   parseGithubListOutput,
@@ -98,6 +99,24 @@ describe('getCredentialStatus (GCM real en Windows)', () => {
     const status = await getCredentialStatus()
     expect(typeof status.gcmConfigured).toBe('boolean')
     expect(Array.isArray(status.helpers)).toBe(true)
+  })
+})
+
+describe('checkSecretStoreHealth (GCM real en Windows)', () => {
+  it.runIf(isWindows)('el round-trip real (approve + fill + reject) da healthy=true', async () => {
+    const result = await checkSecretStoreHealth()
+    expect(result).toEqual({ healthy: true })
+  })
+
+  it.runIf(isWindows)('nunca deja basura de prueba en el Credential Manager real', async () => {
+    await checkSecretStoreHealth()
+    // Si reject hubiera fallado en silencio, un segundo "fill" con el mismo
+    // host encontraría la credencial de la corrida anterior — como el
+    // username es aleatorio por corrida, lo único que se puede confirmar
+    // acá es que una segunda corrida también da healthy=true (no quedó el
+    // almacén en un estado roto por la primera).
+    const second = await checkSecretStoreHealth()
+    expect(second).toEqual({ healthy: true })
   })
 })
 

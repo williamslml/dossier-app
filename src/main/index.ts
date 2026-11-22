@@ -13,6 +13,7 @@ import { z } from 'zod'
 import {
   brand,
   buildHookScript,
+  checkSecretStoreHealth,
   clearConflict,
   cloneRepo,
   createAccountsStore,
@@ -177,6 +178,11 @@ ipcMain.handle(IPC.recheckCredentials, () => getCredentialStatus())
 // M-Doctor (docs/product.md): un chequeo por carpeta fijada, a pedido —
 // nunca escribe nada, solo lee.
 ipcMain.handle(IPC.runDoctor, () => runDoctor(rulesStore, accountsStore, dataDir))
+
+// docs/product.md: chequeo defensivo antes de vincular una cuenta nueva —
+// bloquea el flujo con un aviso claro si el almacén de secretos no puede
+// guardar/leer de verdad, en vez de dejar que falle recién al final.
+ipcMain.handle(IPC.checkSecretStore, () => checkSecretStoreHealth())
 
 // S10.3: una sola función aplica el cambio (IPC o menú de la bandeja) —
 // nunca dos caminos separados que puedan desincronizarse.

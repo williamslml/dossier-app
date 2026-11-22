@@ -8,8 +8,10 @@ export type {
   CredentialStatus,
   GitCredentialAction,
   RunGitCredentialOptions,
+  SecretStoreHealth,
 } from './features/git-credential/git-credential.ts'
 export {
+  checkSecretStoreHealth,
   getCredentialStatus,
   listGithubAccounts,
   runGitCredential,

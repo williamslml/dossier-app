@@ -8,6 +8,7 @@ import type {
   GithubVerification,
   OrphanedCredential,
   Rule,
+  SecretStoreHealth,
   Settings,
   Theme,
 } from '../../core/index.ts'
@@ -20,6 +21,7 @@ export type {
   GithubVerification,
   OrphanedCredential,
   Rule,
+  SecretStoreHealth,
   Settings,
   Theme,
 }
@@ -64,6 +66,7 @@ export interface DossierApi {
   getCredentialStatus(): Promise<CredentialStatus>
   recheckCredentials(): Promise<CredentialStatus>
   runDoctor(): Promise<DoctorCheck[]>
+  checkSecretStore(): Promise<SecretStoreHealth>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -113,6 +116,7 @@ const api: DossierApi = {
   getCredentialStatus: () => ipcRenderer.invoke(IPC.getCredentialStatus),
   recheckCredentials: () => ipcRenderer.invoke(IPC.recheckCredentials),
   runDoctor: () => ipcRenderer.invoke(IPC.runDoctor),
+  checkSecretStore: () => ipcRenderer.invoke(IPC.checkSecretStore),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

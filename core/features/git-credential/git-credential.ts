@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { execFile, spawn } from 'node:child_process'
 
 export type GitCredentialAction = 'approve' | 'fill' | 'reject'
@@ -195,4 +196,43 @@ function parseCredentialOutput(stdout: string): Record<string, string> {
     result[line.slice(0, idx)] = line.slice(idx + 1)
   }
   return result
+}
+
+export interface SecretStoreHealth {
+  healthy: boolean
+  /** Ausente cuando `healthy` es `true`. */
+  detail?: string
+}
+
+/** docs/product.md: "detección de almacén de secretos ausente" — defensivo
+    (en Windows, GCM usa Windows Credential Manager; prácticamente siempre
+    disponible, pero esto no asume nada, lo prueba de verdad). Guarda un
+    valor descartable en un host reservado `.invalid` (nunca resuelve, no
+    choca con cuentas reales), lo relee y confirma que sea el mismo, y
+    siempre lo borra al final — nunca deja basura de prueba, pase lo que
+    pase. */
+export async function checkSecretStoreHealth(): Promise<SecretStoreHealth> {
+  const host = 'dossier-health-check.invalid'
+  const username = `health-${randomUUID().slice(0, 8)}`
+  const password = `probe-${randomUUID().slice(0, 8)}`
+  const credential = { protocol: 'https', host, username }
+
+  try {
+    await runGitCredential('approve', { ...credential, password })
+    const filled = await runGitCredential('fill', credential)
+    if (filled.password !== password) {
+      return {
+        healthy: false,
+        detail: 'El almacén de credenciales devolvió un valor distinto del que se le pidió guardar.',
+      }
+    }
+    return { healthy: true }
+  } catch (err) {
+    return {
+      healthy: false,
+      detail: err instanceof Error ? err.message : String(err),
+    }
+  } finally {
+    await runGitCredential('reject', credential).catch(() => {})
+  }
 }

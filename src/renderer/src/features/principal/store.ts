@@ -8,6 +8,7 @@ import type {
   IdentityConflictAction,
   OrphanedCredential,
   Rule,
+  SecretStoreHealth,
   Settings,
 } from '../../../../preload/index.ts'
 
@@ -169,4 +170,10 @@ export async function runDoctorCheck(): Promise<void> {
   } finally {
     $doctorLoading.set(false)
   }
+}
+
+/** docs/product.md: chequeo defensivo previo a vincular — el llamador
+    decide cómo bloquear/avisar si da `healthy: false`. */
+export async function checkSecretStore(): Promise<SecretStoreHealth> {
+  return window.dossier.checkSecretStore()
 }
