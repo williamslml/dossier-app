@@ -11,7 +11,6 @@ import type {
 
 export interface PrincipalState {
   accounts: Account[]
-  activeId: string | undefined
   displayName: string
   version: string
   loading: boolean
@@ -19,7 +18,6 @@ export interface PrincipalState {
 
 export const $principal = atom<PrincipalState>({
   accounts: [],
-  activeId: undefined,
   displayName: 'Dossier',
   version: '',
   loading: true,

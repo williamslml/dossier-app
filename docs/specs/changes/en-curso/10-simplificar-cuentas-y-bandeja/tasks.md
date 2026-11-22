@@ -45,6 +45,6 @@ Ver `proposal.md` para la secuencia completa (feedback en vivo, un paso a la vez
 
 ## 7. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo: borra funciones de `core/features/identity`) — pendiente
+- [x] Revisión en sesión separada (señal de alto riesgo: borra funciones de `core/features/identity`) — sin hallazgos bloqueantes; confirmó (corriendo typecheck/lint/test ella misma, no solo leyendo) que nada quedó roto o a medias, que `ensureActiveInclude`/`getActiveConfigPath` siguen intactos, que las aserciones reescritas de `end-to-end.test.ts` reflejan comportamiento real (no solo compilan), que el switch de firma se sacó consistente en las 4 capas, y que no quedó CSS huérfano. Un hallazgo menor no bloqueante: `activeId`/`setActiveId`/`getActiveId` (`core/features/state`, un módulo aparte de `identity`) había quedado sin ningún caller ni lector real — mismo patrón de código muerto, en un feature que la spec original no cubrió. Corregido: se borró el módulo entero (`core/features/state`, con su test), y `activeId` de `DossierState`/preload/renderer — typecheck/lint/test en verde (112 tests, bajando de 115)
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación

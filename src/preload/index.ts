@@ -24,7 +24,6 @@ export type IdentityConflictAction = 'aplicar' | 'bloquear' | 'reconectar'
 
 export interface DossierState {
   accounts: Account[]
-  activeId: string | undefined
   displayName: string
   version: string
 }

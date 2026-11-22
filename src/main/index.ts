@@ -18,7 +18,6 @@ import {
   createAccountsStore,
   createRulesStore,
   createSettingsStore,
-  createStateStore,
   ensureActiveInclude,
   findOverlap,
   getActiveConfigPath,
@@ -50,7 +49,6 @@ import { resolveGlobalConfigPath } from './identity.ts'
 app.setAppUserModelId(brand.appId)
 
 const accountsStore = createAccountsStore()
-const stateStore = createStateStore()
 const settingsStore = createSettingsStore()
 const rulesStore = createRulesStore()
 
@@ -81,7 +79,6 @@ updateRegion(globalConfigPath, (region) =>
 
 interface DossierState {
   accounts: Account[]
-  activeId: string | undefined
   displayName: string
   version: string
 }
@@ -89,7 +86,6 @@ interface DossierState {
 function getState(): DossierState {
   return {
     accounts: accountsStore.list(),
-    activeId: stateStore.getActiveId(),
     displayName: brand.displayName,
     version: app.getVersion(),
   }
