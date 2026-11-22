@@ -34,12 +34,12 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Identidad y cuenta HTTPS por carpeta con `includeIf` — confirmado
 - [ ] Etiquetas editables
 - [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
-- [ ] Quick Clone con Auto-Pin
+- [x] Quick Clone con Auto-Pin (`docs/specs/changes/archivados/07-quick-clone/`)
 - [ ] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado
 - [ ] Host de GitLab configurable desde la UI
 - [x] Arranque con Windows — interruptor en Ajustes
 - [ ] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux)
-- [ ] Instalador NSIS + auto-actualización desde GitHub Releases
+- [x] Instalador NSIS + auto-actualización desde GitHub Releases (`docs/specs/changes/archivados/08-release-pipeline/`) — instalador sin firmar todavía (ver el ítem de SignPath más abajo)
 - [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
 - [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`
 - [x] ~~Reglas por carpeta accesibles desde Ajustes~~ — decisión revisada de nuevo al usar la app: terminó siendo al revés, un diálogo por cuenta desde la pantalla principal (`AccountFoldersDialog`), no una sección en Ajustes
