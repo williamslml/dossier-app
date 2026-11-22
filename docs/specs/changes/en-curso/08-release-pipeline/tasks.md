@@ -43,7 +43,8 @@ Fix final: `electron-builder --win --publish never` (nunca publica solo, build �
 
 ## 5. Cierre del change
 
-- [ ] Criterio de éxito de `proposal.md` verificado y anotado acá
-- [ ] Lecciones anotadas en `docs/lessons/README.md` si algo no obvio ocurrió
+- [x] Criterio de éxito de `proposal.md` verificado: los cuatro puntos quedaron confirmados en la sección 4 de arriba (`pnpm dist:win`, `release.yml` con release en borrador, `electron-updater` detecta/descarga/espera el clic, typecheck/lint/test en verde)
+- [x] Lecciones anotadas en `docs/lessons/README.md`: la de `electron-builder --publish` (versión/carrera/PowerShell/nombre de archivo) y la de `resources/` faltante en el `.asar`
+- [ ] Revisión independiente (sesión separada, `CLAUDE.md`: "firma o publicación de release" es señal de alto riesgo) — pendiente
 - [ ] Merge con `finishing-a-development-branch` — pendiente de tu aprobación
 - [ ] Mover la spec a `../archivados/` — pendiente de tu confirmación
