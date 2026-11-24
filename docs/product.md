@@ -55,7 +55,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 ### Después
 
 - [ ] Postulación y aprobación en SignPath Foundation + firma del instalador NSIS; no hay un segundo `.exe` propio que firmar — pospuesto a propósito (ver decisión abierta #3)
-- [ ] Publicación en `winget` / Scoop
+- [ ] Publicación en `winget` / Scoop — pospuesto a propósito, mismo motivo que SignPath (ver decisión abierta #3): implica abrir Pull Requests a repositorios públicos de terceros (`winget-pkgs`, un bucket de Scoop) bajo la identidad real del usuario, con el instalador todavía sin firmar y el proyecto recién empezando. Se retoma junto con SignPath, cuando haya más uso real
 - [x] README bilingüe (`README.md` en inglés, `README.es.md` en español), `CONTRIBUTING.md`, plantillas de issues (`.github/ISSUE_TEMPLATE/`), `SECURITY.md` (reporte privado vía GitHub Security Advisories, sin exponer un email personal)
 
 ## 3. Especificación funcional (semillas para changes futuros)
