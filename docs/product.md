@@ -56,7 +56,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 
 - [ ] Postulación y aprobación en SignPath Foundation + firma del instalador NSIS; no hay un segundo `.exe` propio que firmar
 - [ ] Publicación en `winget` / Scoop
-- [ ] README bilingüe, CONTRIBUTING, plantillas de issues, SECURITY.md
+- [x] README bilingüe (`README.md` en inglés, `README.es.md` en español), `CONTRIBUTING.md`, plantillas de issues (`.github/ISSUE_TEMPLATE/`), `SECURITY.md` (reporte privado vía GitHub Security Advisories, sin exponer un email personal)
 
 ## 3. Especificación funcional (semillas para changes futuros)
 

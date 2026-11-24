@@ -1,41 +1,71 @@
 # Dossier
 
-Gestor de identidades Git por carpeta: configura **Git Credential Manager (GCM)** y reglas `includeIf` de Git para que varias cuentas de GitHub y GitLab convivan en la misma máquina. Cada carpeta elige sola la identidad del commit y la cuenta que usa `clone`, `pull` y `push` — sin tocar nada a mano cada vez que cambiás de proyecto.
+*[Leer en español](README.es.md)*
 
-Pensado para quien trabaja con cuentas personales, de cliente y corporativas a la vez.
+A Windows tray app that manages multiple Git identities per folder. It configures **Git Credential Manager (GCM)** and Git `includeIf` rules so several GitHub and GitLab accounts can coexist on the same machine — each folder picks its own commit identity and HTTPS account automatically, with nothing to switch by hand.
 
-## Qué hace
+Built for developers and consultants who juggle personal, client, and corporate accounts on one computer.
 
-- Vincula cuentas de GitHub (con el flujo de autorización de GitHub) y de GitLab (con un token de acceso personal, incluidas instancias propias, no solo gitlab.com).
-- Guarda los tokens en el gestor de credenciales del sistema operativo — nunca en un archivo del disco.
-- Fija qué cuenta usa cada carpeta: el commit y el `push`/`pull` salen con la identidad correcta sin intervención manual.
+## What it does
 
-## Qué NO hace
+- Links GitHub accounts (OAuth Device Flow) and GitLab accounts (personal access token, including self-hosted instances, not just gitlab.com).
+- Stores tokens in Windows Credential Manager via GCM — never in a file on disk.
+- Pins a folder to an account: every `clone`, `pull`, `push`, and commit from that folder uses the right identity, with no manual `git config` needed.
+- Quick Clone: clone a repository straight into an account's identity, auto-pinned.
+- An optional identity guard (`pre-commit`/`pre-push` hooks) blocks a commit if the folder's real Git identity doesn't match what it's pinned to.
+- A "Doctor" check validates, on demand, that every pinned folder actually resolves to the right account.
+- Detects whether GCM and the underlying credential store are working, with a clear warning when they aren't.
+- Signing keys (SSH or OpenPGP) are part of an account's profile, not a global switch — any folder pinned to that account signs its commits with it automatically. Dossier never generates or imports a key; it only references one you already created.
+- If `gh` CLI is already authenticated on your machine, Dossier can offer to import that session instead of starting a new GitHub login.
+- Auto-updates from GitHub Releases.
 
-- No reemplaza al cliente de Git ni a Git Credential Manager.
-- No instala un credential helper propio ni usa SSH.
-- No tiene servidor, base de datos ni cuentas propias — no es SaaS.
-- No envía ningún token fuera de la máquina.
+## What it doesn't do
 
-## Plataforma
+- It doesn't replace the Git client or Git Credential Manager, or install a credential helper of its own.
+- It doesn't use SSH for remote transport (`clone`/`fetch`/`push` stay on HTTPS) — though an account's profile can still have an SSH key assigned purely for commit *signing*, a separate Git feature from transport.
+- It has no server, database, or account system of its own — it's not SaaS, and no token ever leaves the machine.
 
-Solo Windows por ahora (ver `docs/product.md` §1 para el porqué).
+## Platform
 
-## Estado
+Windows only, by design — see `docs/product.md` §1 for why (macOS code-signing cost, Linux out of scope). The codebase stays cross-platform in principle (no Windows-only paths baked in without reason), but only Windows is built, tested, and shipped.
 
-En desarrollo activo. Ya funcionan: el guardado de credenciales, vincular una cuenta de GitHub o de GitLab desde la app, y que cada carpeta resuelva su propia identidad. Faltan: Ajustes, Clonado rápido y el instalador para distribuirlo. El detalle fase por fase está en `docs/product.md` §5.
+## Status
 
-## Cómo levantar el proyecto
+Core functionality is built and verified end-to-end against real GitHub/GitLab accounts and a real Windows Credential Manager: linking accounts, per-folder identity, Quick Clone, the identity guard, Doctor, GCM/secret-store health checks, syncing an existing `gh` CLI session, account management (rename, assign/clear a signing key, unlink), Settings, and the release pipeline (installer + auto-update).
 
-Ver `docs/runbooks/arrancar-el-proyecto.md` (instalar dependencias, el paso manual pendiente de Electron, y cómo correrlo).
+Still open: the installer isn't code-signed yet (pending a SignPath Foundation application), `glab` CLI import and detecting an already-cached GCM credential (part of "sync accounts linked before Dossier existed"), verification against a real self-hosted GitLab/GitHub Enterprise Server instance, and `winget`/Scoop packaging. Full phase-by-phase detail lives in `docs/product.md` §5.
 
-## Documentación
+## Getting it
 
-- `docs/product.md` — visión, alcance y estado de cada fase.
-- `docs/adr/` — decisiones de arquitectura ya tomadas, con el porqué de cada una.
-- `docs/specs/` — qué se construye en cada cambio en curso.
-- `docs/lessons/` — hallazgos no obvios del desarrollo, para no repetir la misma investigación.
+Download the installer from [GitHub Releases](https://github.com/williamslml/dossier-app/releases). It isn't code-signed yet, so Windows SmartScreen will warn before you run it — this is expected until the SignPath Foundation signing application is approved.
 
-## Licencia
+## Building from source
 
-MIT.
+See `docs/runbooks/arrancar-el-proyecto.md` for the full setup (dependencies, a required manual Electron install step, and how to run it).
+
+```
+pnpm install
+node node_modules/electron/install.js   # required manual step, see the runbook
+pnpm dev                                 # hot-reload development
+```
+
+## Contributing
+
+See `CONTRIBUTING.md`. This project follows a spec-first methodology documented in `CLAUDE.md` (in Spanish) — read it before proposing a non-trivial change.
+
+## Security
+
+See `SECURITY.md` to report a vulnerability.
+
+## Documentation
+
+- `docs/product.md` — vision, scope, and the status of every phase (Spanish).
+- `docs/adr/` — architectural decisions already made, with the reasoning behind each (Spanish).
+- `docs/specs/` — what each change builds, in progress or archived once closed (Spanish).
+- `docs/lessons/` — non-obvious findings from development, so the same investigation isn't repeated (Spanish).
+
+The project's internal documentation is in Spanish (the primary author's working language); this README and the contributor-facing files are bilingual so the project stays approachable either way.
+
+## License
+
+MIT — see `LICENSE`.
