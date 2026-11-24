@@ -367,6 +367,16 @@ Al construir la importación de una sesión de `glab` CLI (`17-sincronizar-glab-
 
 **Para la próxima vez:** al adaptar el patrón de "importar sesión de un CLI" (`gh`, `glab`, o cualquier otro) a un host/comando nuevo, nunca asumir que el output se comporta igual que el anterior (mismo canal, mismo código de salida) solo porque el patrón general es el mismo — correr el binario real con `execFile` (no solo en una terminal) y mirar `stdout`/`stderr`/código de salida por separado, exactamente como ya se hace con GCM en este proyecto. Una función que "nunca lanza" por diseño puede estar fallando en silencio por una razón completamente distinta a la que se pensaba cubrir.
 
+---
+
+# Confiar en que un `finally`/`reject` de limpieza corrió no es lo mismo que confirmarlo — apareció una credencial de prueba residual real
+
+Aplica cuando: se corre código que guarda y después borra una credencial de prueba en GCM (el patrón de "host `.invalid`, limpieza garantizada" usado en todo este proyecto), sobre todo si se corrió muchas veces durante una sesión larga.
+
+Investigando cómo enumerar credenciales de GCM de forma robusta (para el ítem (a) de "sincronizar cuentas previas"), se usó `cmdkey /list` / `CredEnumerate` (de solo lectura) contra el Credential Manager real de esta máquina — y apareció una entrada `git:https://dossier-health-check.invalid` con un username de una corrida vieja de `checkSecretStoreHealth()` (de la spec `14-almacen-secretos-ausente`), que debería haberse borrado sola en su `finally`. Nunca se había notado porque nada volvió a leer el Credential Manager real después de esas corridas — se asumió que el `finally` alcanzaba, sin confirmarlo.
+
+**Para la próxima vez:** cuando un cambio hace guardar-y-borrar credenciales de prueba contra el Credential Manager real (no un store aislado), vale la pena confirmar la limpieza al final con una enumeración real (`cmdkey /list`, o la función de `core` si ya existe una), no solo confiar en que el camino de limpieza del código corrió — exactamente el riesgo residual que ya se había documentado a propósito en `14-almacen-secretos-ausente` (un `reject` final que falla en silencio), ahora confirmado que pasa de verdad, no solo en teoría.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.
