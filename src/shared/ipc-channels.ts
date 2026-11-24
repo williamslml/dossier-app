@@ -31,6 +31,8 @@ export const IPC = {
   checkSecretStore: 'checkSecretStore',
   checkGithubCliImport: 'checkGithubCliImport',
   importGithubCliAccount: 'importGithubCliAccount',
+  checkGitlabCliImport: 'checkGitlabCliImport',
+  importGitlabCliAccount: 'importGitlabCliAccount',
   removeAccount: 'removeAccount',
   setSigningKey: 'setSigningKey',
   clearSigningKey: 'clearSigningKey',

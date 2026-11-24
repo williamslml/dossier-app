@@ -72,6 +72,10 @@ export interface DossierApi {
   checkSecretStore(): Promise<SecretStoreHealth>
   checkGithubCliImport(): Promise<{ username: string; name: string; email: string | undefined } | null>
   importGithubCliAccount(label: string): Promise<DossierState>
+  checkGitlabCliImport(
+    host: string,
+  ): Promise<{ username: string; name: string; email: string | undefined } | null>
+  importGitlabCliAccount(label: string, host: string): Promise<DossierState>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -129,6 +133,9 @@ const api: DossierApi = {
   checkGithubCliImport: () => ipcRenderer.invoke(IPC.checkGithubCliImport),
   importGithubCliAccount: (label: string) =>
     ipcRenderer.invoke(IPC.importGithubCliAccount, { label }),
+  checkGitlabCliImport: (host: string) => ipcRenderer.invoke(IPC.checkGitlabCliImport, { host }),
+  importGitlabCliAccount: (label: string, host: string) =>
+    ipcRenderer.invoke(IPC.importGitlabCliAccount, { label, host }),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

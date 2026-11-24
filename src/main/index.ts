@@ -27,6 +27,7 @@ import {
   getProfilePath,
   installHook,
   findImportableGithubCliAccount,
+  findImportableGitlabCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
   removeLinkedAccount,
@@ -240,6 +241,26 @@ ipcMain.handle(IPC.importGithubCliAccount, async (_event, payload: unknown) => {
     throw new Error('Ya no hay ninguna sesión de gh CLI para importar.')
   }
   const account = await saveLinkedAccount(accountsStore, linked, label, 'github.com')
+  notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  return getState()
+})
+
+const checkGitlabCliImportSchema = z.object({ host: z.string().min(1) })
+ipcMain.handle(IPC.checkGitlabCliImport, async (_event, payload: unknown) => {
+  const { host } = checkGitlabCliImportSchema.parse(payload)
+  const linked = await findImportableGitlabCliAccount(accountsStore, host)
+  if (!linked) return null
+  return { username: linked.username, name: linked.name, email: linked.email }
+})
+
+const importGitlabCliAccountSchema = z.object({ label: z.string().min(1), host: z.string().min(1) })
+ipcMain.handle(IPC.importGitlabCliAccount, async (_event, payload: unknown) => {
+  const { label, host } = importGitlabCliAccountSchema.parse(payload)
+  const linked = await findImportableGitlabCliAccount(accountsStore, host)
+  if (!linked) {
+    throw new Error('Ya no hay ninguna sesión de glab CLI para importar en ese host.')
+  }
+  const account = await saveLinkedAccount(accountsStore, linked, label, host)
   notify({ title: brand.displayName, body: `${account.label} vinculada` })
   return getState()
 })

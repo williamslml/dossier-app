@@ -48,6 +48,7 @@ export { brand } from './features/brand/brand.ts'
 
 export {
   findImportableGithubCliAccount,
+  findImportableGitlabCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
   saveLinkedAccount,

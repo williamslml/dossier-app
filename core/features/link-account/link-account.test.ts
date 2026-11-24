@@ -9,6 +9,7 @@ import type { AccountsStore } from '../accounts/accounts.ts'
 import type { LinkedAccount } from '../providers/github/github.ts'
 import {
   findImportableGithubCliAccount,
+  findImportableGitlabCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
   saveLinkedAccount,
@@ -249,6 +250,112 @@ describe('findImportableGithubCliAccount (sincronizar cuentas previas — sin to
         },
       ),
     ).rejects.toThrow('401')
+  })
+})
+
+describe('findImportableGitlabCliAccount (sincronizar cuentas previas — sin tocar glab real)', () => {
+  // Nunca invoca glab CLI de verdad en un test: findToken/linkGitlab
+  // siempre inyectados, igual que con gh CLI arriba.
+  const host = 'gitlab.example.com'
+
+  it('sin token cacheado (glab ausente o sin sesión para ese host), no hay nada que importar', async () => {
+    const result = await findImportableGitlabCliAccount(
+      store,
+      host,
+      async () => undefined,
+      async () => {
+        throw new Error('nunca debería llamarse sin token')
+      },
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it('con un token cacheado de una cuenta nueva, lo confirma contra la API y lo devuelve', async () => {
+    const linked: LinkedAccount = {
+      provider: 'gitlab',
+      username: 'cli-user-gl',
+      id: 11,
+      name: 'Usuario CLI GitLab',
+      email: 'cli@example.com',
+      token: 'glpat-fake',
+    }
+    const result = await findImportableGitlabCliAccount(
+      store,
+      host,
+      async (h) => {
+        expect(h).toBe(host)
+        return 'glpat-fake'
+      },
+      async (h, token) => {
+        expect(h).toBe(host)
+        expect(token).toBe('glpat-fake')
+        return linked
+      },
+    )
+    expect(result).toEqual(linked)
+  })
+
+  it('si la cuenta ya está vinculada (mismo host y username), no la ofrece de nuevo', async () => {
+    store.create({
+      provider: 'gitlab',
+      host,
+      label: 'Ya vinculada',
+      username: 'cli-user-gl',
+      name: 'Usuario CLI GitLab',
+      email: 'cli@example.com',
+    })
+    const result = await findImportableGitlabCliAccount(
+      store,
+      host,
+      async () => 'glpat-fake',
+      async () => ({
+        provider: 'gitlab',
+        username: 'cli-user-gl',
+        id: 11,
+        name: 'Usuario CLI GitLab',
+        email: 'cli@example.com',
+        token: 'glpat-fake',
+      }),
+    )
+    expect(result).toBeUndefined()
+  })
+
+  it('la misma cuenta cacheada en otro host no cuenta como "ya vinculada"', async () => {
+    store.create({
+      provider: 'gitlab',
+      host: 'otro-host.example.com',
+      label: 'Otra instancia',
+      username: 'cli-user-gl',
+      name: 'Usuario CLI GitLab',
+      email: 'cli@example.com',
+    })
+    const result = await findImportableGitlabCliAccount(
+      store,
+      host,
+      async () => 'glpat-fake',
+      async () => ({
+        provider: 'gitlab',
+        username: 'cli-user-gl',
+        id: 11,
+        name: 'Usuario CLI GitLab',
+        email: 'cli@example.com',
+        token: 'glpat-fake',
+      }),
+    )
+    expect(result).toBeDefined()
+  })
+
+  it('si el token cacheado no es válido, el error de linkGitlab se propaga (nunca se oculta)', async () => {
+    await expect(
+      findImportableGitlabCliAccount(
+        store,
+        host,
+        async () => 'glpat-invalido',
+        async () => {
+          throw new Error('Token de GitLab inválido o sin permiso')
+        },
+      ),
+    ).rejects.toThrow('inválido')
   })
 })
 

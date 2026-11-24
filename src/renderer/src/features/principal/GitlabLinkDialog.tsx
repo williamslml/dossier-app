@@ -1,5 +1,7 @@
-import { useState } from 'preact/hooks'
+import { useEffect, useState } from 'preact/hooks'
 import { applyState, showToast } from './store.ts'
+
+type CliImport = { username: string; name: string; email: string | undefined }
 
 // Funciona igual para gitlab.com que para un servidor autoalojado: usa el
 // host que haya puesto el usuario, nunca gitlab.com fijo (ADR, soporte de
@@ -26,6 +28,47 @@ export function GitlabLinkDialog({
   const [error, setError] = useState<string | null>(null)
   const [linking, setLinking] = useState(false)
   const [showToken, setShowToken] = useState(false)
+
+  // docs/product.md: "sincronizar cuentas previas a Dossier" (b) — ofrece
+  // la sesión de `glab` CLI para el host que el usuario ya escribió acá,
+  // nunca la usa sin un clic explícito. A diferencia de GitHub (host fijo
+  // `github.com`), acá el host lo decide el usuario, así que se vuelve a
+  // chequear cada vez que termina de editarlo, no solo al montar.
+  const [cliImport, setCliImport] = useState<CliImport | null>(null)
+  const [importingCli, setImportingCli] = useState(false)
+
+  async function checkCliImport(forHost: string): Promise<void> {
+    const trimmed = forHost.trim()
+    if (!trimmed) {
+      setCliImport(null)
+      return
+    }
+    try {
+      setCliImport(await window.dossier.checkGitlabCliImport(trimmed))
+    } catch {
+      setCliImport(null)
+    }
+  }
+
+  useEffect(() => {
+    void checkCliImport(host)
+  }, [])
+
+  async function handleImportCli(): Promise<void> {
+    const trimmedLabel = label.trim()
+    const trimmedHost = host.trim()
+    if (!trimmedLabel || !trimmedHost) return
+    setImportingCli(true)
+    try {
+      applyState(await window.dossier.importGitlabCliAccount(trimmedLabel, trimmedHost))
+      showToast(`${trimmedLabel} vinculada`)
+      onLinked()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar la cuenta.')
+    } finally {
+      setImportingCli(false)
+    }
+  }
 
   async function handleSubmit(event: Event) {
     event.preventDefault()
@@ -79,10 +122,32 @@ export function GitlabLinkDialog({
                 // enlace (era para el dominio anterior) — se vuelve al paso
                 // de crear uno nuevo, sin tener que cerrar el diálogo.
                 setShowToken(false)
+                // El resultado anterior era para el dominio viejo — se
+                // vuelve a chequear recién cuando termine de editar.
+                setCliImport(null)
               }}
+              onBlur={(e) => void checkCliImport((e.target as HTMLInputElement).value)}
               required
             />
           </div>
+
+          {cliImport && !showToken && (
+            <div class="cli-import-banner">
+              <span>
+                Ya tenés sesión de <strong>glab</strong> CLI con <strong>{cliImport.username}</strong>{' '}
+                en este dominio.
+              </span>
+              <button
+                type="button"
+                class="btn-add btn-secondary"
+                disabled={!label.trim() || importingCli}
+                onClick={() => void handleImportCli()}
+              >
+                {importingCli ? 'Vinculando…' : 'Usar esta cuenta'}
+              </button>
+            </div>
+          )}
+
           {!showToken && (
             <>
               <button

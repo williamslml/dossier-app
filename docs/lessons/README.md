@@ -357,6 +357,16 @@ Como esto corre contra la app real (cuentas y credenciales reales, no un sandbox
 
 **Para la próxima vez:** este patrón (Playwright `_electron` + `playwright-core` instalado aparte en el scratchpad + `window.dossier.getState()` para leer, nunca inventar un acceso nuevo) sirve para cualquier verificación en vivo futura de este proyecto donde no se pueda pedirle al usuario que pruebe a mano. Si algo similar se repite, vale la pena promoverlo a un script dentro del repo (`.claude/skills/` o similar) en vez de rehacerlo cada vez.
 
+---
+
+# `glab auth status --show-token` imprime la línea del token por **stderr**, no por stdout — y además sale con código de error aunque sí encuentre el token
+
+Aplica cuando: se inspecciona la salida de un CLI de terceros para extraer un dato (acá, un token cacheado), especialmente si antes solo se vio esa salida combinada en una terminal.
+
+Al construir la importación de una sesión de `glab` CLI (`17-sincronizar-glab-cli`), un primer intento de `findGitlabCliToken` miraba solo `stdout` y devolvía `undefined` siempre — sin ningún error visible, porque la función está diseñada para no lanzar nunca (`gh`/`glab` ausente o sin sesión también da `undefined`, a propósito). El bug recién se notó al correr un `execFile` real por separado y mirar `stdout`/`stderr` por separado: la línea `Token found in ...: <token>` sale por `stderr`, no por `stdout` — una terminal normal los combina, así que probarlo "a ojo" en una terminal nunca lo habría mostrado. Además, `glab auth status` siempre intenta confirmar el token contra la API del host antes de reportar éxito — si eso falla (host no resuelve, token inválido), sale con código de error aunque la línea del token ya se haya impreso, a diferencia de `gh auth token`, que sale 0 solo si de verdad encuentra algo.
+
+**Para la próxima vez:** al adaptar el patrón de "importar sesión de un CLI" (`gh`, `glab`, o cualquier otro) a un host/comando nuevo, nunca asumir que el output se comporta igual que el anterior (mismo canal, mismo código de salida) solo porque el patrón general es el mismo — correr el binario real con `execFile` (no solo en una terminal) y mirar `stdout`/`stderr`/código de salida por separado, exactamente como ya se hace con GCM en este proyecto. Una función que "nunca lanza" por diseño puede estar fallando en silencio por una razón completamente distinta a la que se pensaba cubrir.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

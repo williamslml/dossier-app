@@ -1,5 +1,8 @@
 import type { AccountsStore, Account } from '../accounts/accounts.ts'
-import { findGithubCliToken as defaultFindGithubCliToken } from '../cli-import/cli-import.ts'
+import {
+  findGithubCliToken as defaultFindGithubCliToken,
+  findGitlabCliToken as defaultFindGitlabCliToken,
+} from '../cli-import/cli-import.ts'
 import type { GithubVerification, LinkedAccount } from '../providers/github/github.ts'
 import {
   fetchGithubUser as defaultFetchGithubUser,
@@ -13,6 +16,7 @@ type LinkGithub = typeof defaultLinkGithub
 type LinkGitlab = typeof defaultLinkGitlab
 type FetchGithubUser = typeof defaultFetchGithubUser
 type FindGithubCliToken = typeof defaultFindGithubCliToken
+type FindGitlabCliToken = typeof defaultFindGitlabCliToken
 
 const FILL_RETRY_ATTEMPTS = 3
 const FILL_RETRY_DELAY_MS = 400
@@ -121,6 +125,27 @@ export async function findImportableGithubCliAccount(
   const alreadyLinked = accountsStore
     .list()
     .some((a) => a.host === 'github.com' && a.username === linked.username)
+  return alreadyLinked ? undefined : linked
+}
+
+/**
+ * docs/product.md: "sincronizar cuentas previas a Dossier" (b), para
+ * GitLab — mismo criterio que la versión de GitHub: nunca confía en lo
+ * que imprime el CLI, confirma el token contra `GET /api/v4/user` antes de
+ * ofrecerlo. `host` es el que el usuario ya escribió en el diálogo (acá no
+ * hay un host fijo como `github.com`).
+ */
+export async function findImportableGitlabCliAccount(
+  accountsStore: AccountsStore,
+  host: string,
+  findToken: FindGitlabCliToken = defaultFindGitlabCliToken,
+  linkGitlab: LinkGitlab = defaultLinkGitlab,
+): Promise<LinkedAccount | undefined> {
+  const token = await findToken(host)
+  if (!token) return undefined
+
+  const linked = await linkGitlab(host, token)
+  const alreadyLinked = accountsStore.list().some((a) => a.host === host && a.username === linked.username)
   return alreadyLinked ? undefined : linked
 }
 
