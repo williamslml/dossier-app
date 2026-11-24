@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'preact/hooks'
 import { applyState, showToast } from './store.ts'
 
 type CliImport = { username: string; name: string; email: string | undefined }
+type GcmAccount = { username: string; name: string; email: string | undefined }
 
 // Funciona igual para gitlab.com que para un servidor autoalojado: usa el
 // host que haya puesto el usuario, nunca gitlab.com fijo (ADR, soporte de
@@ -36,34 +37,51 @@ export function GitlabLinkDialog({
   // chequear cada vez que termina de editarlo, no solo al montar.
   const [cliImport, setCliImport] = useState<CliImport | null>(null)
   const [importingCli, setImportingCli] = useState(false)
-  // Hallazgo de revisión: dos chequeos pueden solaparse (el usuario pierde
-  // foco del campo, edita, y vuelve a perder foco antes de que resuelva el
-  // primero) — si el de un dominio viejo tarda más, podría pisar el
-  // resultado ya correcto del dominio actual. Esta ref guarda cuál es el
-  // dominio vigente; una respuesta para un dominio que ya no es el actual
-  // se descarta en vez de aplicarse.
+  // docs/product.md: "sincronizar cuentas previas a Dossier" (a) — a
+  // diferencia de glab CLI (una sesión activa, o ninguna), el Credential
+  // Manager de Windows puede tener más de una credencial guardada para el
+  // mismo host (de usos previos de `git` común, antes de instalar Dossier)
+  // — se ofrecen todas, nunca una elegida en automático.
+  const [gcmAccounts, setGcmAccounts] = useState<GcmAccount[]>([])
+  const [importingGcmUsername, setImportingGcmUsername] = useState<string | null>(null)
+  // Hallazgo de revisión (glab CLI): dos chequeos pueden solaparse (el
+  // usuario pierde foco del campo, edita, y vuelve a perder foco antes de
+  // que resuelva el primero) — si el de un dominio viejo tarda más, podría
+  // pisar el resultado ya correcto del dominio actual. Esta ref guarda cuál
+  // es el dominio vigente; una respuesta (de cualquiera de los dos chequeos)
+  // para un dominio que ya no es el actual se descarta en vez de aplicarse.
   const latestHostChecked = useRef('')
 
-  async function checkCliImport(forHost: string): Promise<void> {
+  async function checkForImportableAccounts(forHost: string): Promise<void> {
     const trimmed = forHost.trim()
     latestHostChecked.current = trimmed
     if (!trimmed) {
       setCliImport(null)
+      setGcmAccounts([])
       return
     }
-    let result: CliImport | null
-    try {
-      result = await window.dossier.checkGitlabCliImport(trimmed)
-    } catch {
-      result = null
-    }
-    if (latestHostChecked.current === trimmed) {
-      setCliImport(result)
-    }
+    void (async () => {
+      let result: CliImport | null
+      try {
+        result = await window.dossier.checkGitlabCliImport(trimmed)
+      } catch {
+        result = null
+      }
+      if (latestHostChecked.current === trimmed) setCliImport(result)
+    })()
+    void (async () => {
+      let result: GcmAccount[]
+      try {
+        result = await window.dossier.checkGcmCachedAccounts(trimmed)
+      } catch {
+        result = []
+      }
+      if (latestHostChecked.current === trimmed) setGcmAccounts(result)
+    })()
   }
 
   useEffect(() => {
-    void checkCliImport(host)
+    void checkForImportableAccounts(host)
   }, [])
 
   async function handleImportCli(): Promise<void> {
@@ -79,6 +97,22 @@ export function GitlabLinkDialog({
       setError(err instanceof Error ? err.message : 'No se pudo importar la cuenta.')
     } finally {
       setImportingCli(false)
+    }
+  }
+
+  async function handleImportGcmAccount(username: string): Promise<void> {
+    const trimmedLabel = label.trim()
+    const trimmedHost = host.trim()
+    if (!trimmedLabel || !trimmedHost) return
+    setImportingGcmUsername(username)
+    try {
+      applyState(await window.dossier.importGcmCachedAccount(trimmedLabel, trimmedHost, username))
+      showToast(`${trimmedLabel} vinculada`)
+      onLinked()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo importar la cuenta.')
+    } finally {
+      setImportingGcmUsername(null)
     }
   }
 
@@ -137,8 +171,9 @@ export function GitlabLinkDialog({
                 // El resultado anterior era para el dominio viejo — se
                 // vuelve a chequear recién cuando termine de editar.
                 setCliImport(null)
+                setGcmAccounts([])
               }}
-              onBlur={(e) => void checkCliImport((e.target as HTMLInputElement).value)}
+              onBlur={(e) => void checkForImportableAccounts((e.target as HTMLInputElement).value)}
               required
             />
           </div>
@@ -159,6 +194,24 @@ export function GitlabLinkDialog({
               </button>
             </div>
           )}
+
+          {!showToken &&
+            gcmAccounts.map((account) => (
+              <div class="cli-import-banner" key={account.username}>
+                <span>
+                  Ya tenés una credencial guardada en el Administrador de Credenciales de Windows
+                  para <strong>{account.username}</strong> en este dominio.
+                </span>
+                <button
+                  type="button"
+                  class="btn-add btn-secondary"
+                  disabled={!label.trim() || importingGcmUsername !== null}
+                  onClick={() => void handleImportGcmAccount(account.username)}
+                >
+                  {importingGcmUsername === account.username ? 'Vinculando…' : 'Usar esta cuenta'}
+                </button>
+              </div>
+            ))}
 
           {!showToken && (
             <>

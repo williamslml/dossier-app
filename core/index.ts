@@ -5,6 +5,7 @@
 // una regla de ESLint, no solo por convención).
 
 export type {
+  CachedGcmCredential,
   CredentialStatus,
   GitCredentialAction,
   RunGitCredentialOptions,
@@ -13,6 +14,7 @@ export type {
 export {
   checkSecretStoreHealth,
   getCredentialStatus,
+  listGcmGitCredentials,
   listGithubAccounts,
   runGitCredential,
 } from './features/git-credential/git-credential.ts'
@@ -47,6 +49,7 @@ export type { Brand } from './features/brand/brand.ts'
 export { brand } from './features/brand/brand.ts'
 
 export {
+  findImportableGcmAccountsForHost,
   findImportableGithubCliAccount,
   findImportableGitlabCliAccount,
   linkGithubAccount,

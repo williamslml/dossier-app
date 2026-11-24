@@ -9,7 +9,10 @@ import {
   linkGithub as defaultLinkGithub,
 } from '../providers/github/github.ts'
 import { linkGitlab as defaultLinkGitlab } from '../providers/gitlab/gitlab.ts'
-import { runGitCredential as defaultRunGitCredential } from '../git-credential/git-credential.ts'
+import {
+  runGitCredential as defaultRunGitCredential,
+  listGcmGitCredentials as defaultListGcmGitCredentials,
+} from '../git-credential/git-credential.ts'
 
 type GitCredential = typeof defaultRunGitCredential
 type LinkGithub = typeof defaultLinkGithub
@@ -17,6 +20,7 @@ type LinkGitlab = typeof defaultLinkGitlab
 type FetchGithubUser = typeof defaultFetchGithubUser
 type FindGithubCliToken = typeof defaultFindGithubCliToken
 type FindGitlabCliToken = typeof defaultFindGitlabCliToken
+type ListGcmGitCredentials = typeof defaultListGcmGitCredentials
 
 const FILL_RETRY_ATTEMPTS = 3
 const FILL_RETRY_DELAY_MS = 400
@@ -147,6 +151,58 @@ export async function findImportableGitlabCliAccount(
   const linked = await linkGitlab(host, token)
   const alreadyLinked = accountsStore.list().some((a) => a.host === host && a.username === linked.username)
   return alreadyLinked ? undefined : linked
+}
+
+/**
+ * docs/product.md: "sincronizar cuentas previas a Dossier" (a) — a
+ * diferencia de (b), acá no hay CLI que avise de una sesión: GCM mismo ya
+ * puede tener guardada una credencial para este host, de alguna vez que se
+ * usó `git` común contra él, antes de instalar Dossier (`listGcmGitCredentials`
+ * la encuentra por enumeración nativa de Windows, no por texto de `cmdkey`).
+ * Puede haber más de un username guardado para el mismo host — a diferencia
+ * de (b), donde solo existe la sesión activa de un CLI — así que devuelve
+ * todos los candidatos verificados, nunca eligiendo uno por su cuenta. El
+ * username que GCM tenía guardado es solo una pista para saber a quién
+ * preguntarle el token (vía `fill`); la identidad real que se ofrece es
+ * siempre la que confirma la API (`linkGitlab`), igual que en (b) — nunca
+ * se confía en la etiqueta guardada. Un candidato cuyo token ya no sirve
+ * (vencido, revocado) se descarta en silencio: no debe impedir que aparezcan
+ * los demás.
+ */
+export async function findImportableGcmAccountsForHost(
+  accountsStore: AccountsStore,
+  host: string,
+  listCredentials: ListGcmGitCredentials = defaultListGcmGitCredentials,
+  gitCredential: GitCredential = defaultRunGitCredential,
+  linkGitlab: LinkGitlab = defaultLinkGitlab,
+): Promise<LinkedAccount[]> {
+  const candidates = (await listCredentials()).filter((c) => c.host === host)
+  const knownUsernames = new Set(
+    accountsStore
+      .list()
+      .filter((a) => a.host === host)
+      .map((a) => a.username),
+  )
+
+  const results: LinkedAccount[] = []
+  for (const candidate of candidates) {
+    if (knownUsernames.has(candidate.username)) continue
+    try {
+      const filled = await gitCredential('fill', {
+        protocol: 'https',
+        host,
+        username: candidate.username,
+      })
+      if (!filled.password) continue
+      const linked = await linkGitlab(host, filled.password)
+      if (!knownUsernames.has(linked.username) && !results.some((r) => r.username === linked.username)) {
+        results.push(linked)
+      }
+    } catch {
+      continue
+    }
+  }
+  return results
 }
 
 export function linkGitlabAccount(

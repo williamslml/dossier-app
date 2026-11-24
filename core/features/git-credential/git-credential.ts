@@ -198,6 +198,126 @@ function parseCredentialOutput(stdout: string): Record<string, string> {
   return result
 }
 
+export interface CachedGcmCredential {
+  host: string
+  username: string
+}
+
+/**
+ * docs/product.md: "sincronizar cuentas vinculadas antes de tener Dossier"
+ * (a) — enumera, de solo lectura, las credenciales que GCM ya tiene
+ * guardadas para cualquier host de Git (`git:https://<host>`), vía la API
+ * nativa de Windows (`CredEnumerate`, `advapi32.dll`), nunca parseando el
+ * texto localizado de `cmdkey /list` (sale distinto según el idioma de
+ * Windows — "Destino"/"Target", etc. — probado a mano contra esta máquina
+ * en español antes de elegir este camino). `CredEnumerate` nunca expone la
+ * contraseña/token (no se marshalea `CredentialBlob`), solo el nombre del
+ * destino y el username — igual de "no secreto" que `credential.helper`.
+ *
+ * Hallazgo real: `spawn('powershell.exe', ...)` desde Node resuelve el
+ * Windows PowerShell 5.1 del sistema (no el pwsh 7+ de una sesión
+ * interactiva) — probado a mano antes de asumirlo. `ConvertTo-Json
+ * -AsArray` no existe ahí (parámetro agregado en 6.2+), y pasar `$results`
+ * por el pipe a `ConvertTo-Json` sin eso colapsa un array de un solo
+ * elemento a un objeto suelto (el caso real de "un único candidato" que
+ * `findImportableGcmAccountsForHost` necesita distinguir de "varios"). Se
+ * usa `-InputObject` en vez del pipe — confirmado con 0, 1 y 3 resultados
+ * contra el binario real que de verdad se termina invocando — porque evita
+ * el colapso sin depender de un parámetro que no existe en PS 5.1.
+ */
+const LIST_GIT_CREDENTIALS_SCRIPT = `
+$code = @'
+using System;
+using System.Runtime.InteropServices;
+public class DossierCredEnum {
+  [DllImport("advapi32.dll", SetLastError = true, CharSet = CharSet.Unicode)]
+  [return: MarshalAs(UnmanagedType.Bool)]
+  public static extern bool CredEnumerate(string filter, int flags, out int count, out IntPtr pCredentials);
+  [DllImport("advapi32.dll", SetLastError = true)]
+  public static extern void CredFree(IntPtr buffer);
+  [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
+  public struct CREDENTIAL {
+    public int Flags; public int Type; public string TargetName; public string Comment;
+    public long LastWritten; public int CredentialBlobSize; public IntPtr CredentialBlob;
+    public int Persist; public int AttributeCount; public IntPtr Attributes;
+    public string TargetAlias; public string UserName;
+  }
+}
+'@
+Add-Type -TypeDefinition $code
+$count = 0
+$ptr = [IntPtr]::Zero
+$ok = [DossierCredEnum]::CredEnumerate("git:*", 0, [ref]$count, [ref]$ptr)
+$results = @()
+if ($ok) {
+  for ($i = 0; $i -lt $count; $i++) {
+    $credPtr = [System.Runtime.InteropServices.Marshal]::ReadIntPtr([IntPtr]::Add($ptr, $i * [IntPtr]::Size))
+    $cred = [System.Runtime.InteropServices.Marshal]::PtrToStructure($credPtr, [type][DossierCredEnum+CREDENTIAL])
+    if ($cred.UserName) {
+      $results += [PSCustomObject]@{ target = $cred.TargetName; username = $cred.UserName }
+    }
+  }
+  [DossierCredEnum]::CredFree($ptr)
+}
+ConvertTo-Json -InputObject $results -Compress
+`.trim()
+
+/**
+ * Hallazgo real (probado en vivo, no solo con JSON inventado a mano): con
+ * más de una credencial guardada para el mismo host, GCM distingue la
+ * segunda (y siguientes) con el username embebido en el target
+ * (`git:https://<username>@<host>`), no solo `git:https://<host>` —
+ * justo el caso real de "varias cuentas en el mismo host" que le importa a
+ * esta función. El username real sigue viniendo del campo `UserName` del
+ * propio PowerShell (nunca del target) — esto solo afecta a qué parte del
+ * target es el host.
+ */
+const TARGET_PATTERN = /^git:https:\/\/(?:[^@/]+@)?(.+)$/
+
+/** Función pura (separada del spawn) para poder probar el parseo con
+    distintas formas de salida sin invocar PowerShell de verdad. */
+export function parseGcmGitCredentialsOutput(stdout: string): CachedGcmCredential[] {
+  const trimmed = stdout.trim()
+  if (!trimmed) return []
+  let raw: unknown
+  try {
+    raw = JSON.parse(trimmed)
+  } catch {
+    return []
+  }
+  if (!Array.isArray(raw)) return []
+
+  const result: CachedGcmCredential[] = []
+  for (const entry of raw) {
+    if (typeof entry !== 'object' || entry === null) continue
+    const { target, username } = entry as Record<string, unknown>
+    if (typeof target !== 'string' || typeof username !== 'string' || username === '') continue
+    const match = TARGET_PATTERN.exec(target)
+    if (match?.[1]) result.push({ host: match[1], username })
+  }
+  return result
+}
+
+/** Nunca lanza: PowerShell ausente (no debería pasar en Windows real),
+    `CredEnumerate` fallando, o cualquier salida irreconocible dan `[]` —
+    "no se encontró nada para ofrecer", nunca un error que bloquee vincular
+    una cuenta por el camino normal. */
+export function listGcmGitCredentials(): Promise<CachedGcmCredential[]> {
+  return new Promise((resolve) => {
+    const child = spawn(
+      'powershell.exe',
+      ['-NoProfile', '-NonInteractive', '-Command', LIST_GIT_CREDENTIALS_SCRIPT],
+      { stdio: ['ignore', 'pipe', 'pipe'] },
+    )
+    let stdout = ''
+    child.stdout.on('data', (chunk: Buffer) => {
+      stdout += chunk.toString('utf8')
+    })
+    child.on('error', () => resolve([]))
+    child.on('close', () => resolve(parseGcmGitCredentialsOutput(stdout)))
+  })
+}
+
 export interface SecretStoreHealth {
   healthy: boolean
   /** Ausente cuando `healthy` es `true`. */

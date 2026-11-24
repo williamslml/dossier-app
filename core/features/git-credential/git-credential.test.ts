@@ -5,7 +5,9 @@ import {
   buildGitCredentialArgs,
   checkSecretStoreHealth,
   getCredentialStatus,
+  listGcmGitCredentials,
   parseCredentialHelperChain,
+  parseGcmGitCredentialsOutput,
   parseGithubListOutput,
   runGitCredential,
 } from './git-credential.ts'
@@ -40,6 +42,59 @@ describe('parseGithubListOutput (S9.1, 05-ajustes — pura, sin GCM real)', () =
   it('salida vacía da una lista vacía, no [""]', () => {
     expect(parseGithubListOutput('')).toEqual([])
     expect(parseGithubListOutput('\n')).toEqual([])
+  })
+})
+
+describe('parseGcmGitCredentialsOutput (a, sincronizar cuentas previas — pura, sin PowerShell real)', () => {
+  it('extrae host y username de cada entrada "git:https://<host>"', () => {
+    const stdout = JSON.stringify([
+      { target: 'git:https://github.com', username: 'octocat' },
+      { target: 'git:https://gitlab.example.com', username: 'hubot' },
+    ])
+    expect(parseGcmGitCredentialsOutput(stdout)).toEqual([
+      { host: 'github.com', username: 'octocat' },
+      { host: 'gitlab.example.com', username: 'hubot' },
+    ])
+  })
+
+  it('ignora targets que no son de git (otras apps guardadas en el mismo Credential Manager)', () => {
+    const stdout = JSON.stringify([
+      { target: 'MicrosoftAccount:target=SSO_POP_Device', username: 'alguien' },
+      { target: 'git:https://github.com', username: 'octocat' },
+    ])
+    expect(parseGcmGitCredentialsOutput(stdout)).toEqual([{ host: 'github.com', username: 'octocat' }])
+  })
+
+  it('ignora entradas sin username (PowerShell ya las filtra, pero no hay que confiar ciegamente)', () => {
+    const stdout = JSON.stringify([{ target: 'git:https://github.com', username: '' }])
+    expect(parseGcmGitCredentialsOutput(stdout)).toEqual([])
+  })
+
+  it('salida vacía, no-JSON, o algo que no sea un array da [] — nunca lanza', () => {
+    expect(parseGcmGitCredentialsOutput('')).toEqual([])
+    expect(parseGcmGitCredentialsOutput('  \n ')).toEqual([])
+    expect(parseGcmGitCredentialsOutput('esto no es JSON')).toEqual([])
+    expect(parseGcmGitCredentialsOutput('{"target":"git:https://github.com"}')).toEqual([])
+  })
+
+  it('con más de una credencial en el mismo host, GCM embebe el username en el target (hallazgo real) — el host sigue siendo el correcto', () => {
+    const stdout = JSON.stringify([
+      { target: 'git:https://github.com', username: 'primera-cuenta' },
+      { target: 'git:https://segunda-cuenta@github.com', username: 'segunda-cuenta' },
+    ])
+    expect(parseGcmGitCredentialsOutput(stdout)).toEqual([
+      { host: 'github.com', username: 'primera-cuenta' },
+      { host: 'github.com', username: 'segunda-cuenta' },
+    ])
+  })
+
+  it('PowerShell colapsa un array de un solo elemento a un objeto suelto — se maneja igual', () => {
+    // ConvertTo-Json -AsArray evita esto en la salida real, pero si algún
+    // día cambiara, un objeto suelto (no en un array) no debe hacer caer el
+    // parseo entero — nunca ofrecer nada en vez de lanzar.
+    expect(parseGcmGitCredentialsOutput('{"target":"git:https://github.com","username":"octocat"}')).toEqual(
+      [],
+    )
   })
 })
 
@@ -127,6 +182,75 @@ describe('checkSecretStoreHealth (GCM real en Windows)', () => {
       ).rejects.toThrow()
     },
   )
+})
+
+describe('listGcmGitCredentials (a, sincronizar cuentas previas — GCM real en Windows)', () => {
+  it.runIf(isWindows)(
+    'encuentra una credencial de prueba recién guardada por su host y username reales',
+    async () => {
+      const host = 'sfp-list-gcm-test.invalid'
+      const username = `list-test-${suffix}`
+      await runGitCredential('approve', {
+        protocol: 'https',
+        host,
+        username,
+        password: `probe-${suffix}`,
+      })
+
+      try {
+        const found = await listGcmGitCredentials()
+        expect(found).toContainEqual({ host, username })
+      } finally {
+        await runGitCredential('reject', { protocol: 'https', host, username })
+      }
+    },
+  )
+
+  it.runIf(isWindows)('nunca expone la contraseña — solo host y username', async () => {
+    const host = 'sfp-list-gcm-secret-test.invalid'
+    const username = `secret-test-${suffix}`
+    const password = `super-secreto-${suffix}`
+    await runGitCredential('approve', { protocol: 'https', host, username, password })
+
+    try {
+      const found = await listGcmGitCredentials()
+      const entry = found.find((c) => c.host === host)
+      expect(entry).toEqual({ host, username })
+      expect(Object.keys(entry ?? {})).toEqual(['host', 'username'])
+      expect(JSON.stringify(found)).not.toContain(password)
+    } finally {
+      await runGitCredential('reject', { protocol: 'https', host, username })
+    }
+  })
+
+  it.runIf(isWindows)(
+    'con dos credenciales guardadas para el mismo host (GCM embebe el username en el target de la segunda), encuentra las dos con el host correcto',
+    async () => {
+      const host = 'sfp-list-gcm-multi-test.invalid'
+      const userA = `multi-a-${suffix}`
+      const userB = `multi-b-${suffix}`
+      await runGitCredential('approve', { protocol: 'https', host, username: userA, password: 'pa' })
+      await runGitCredential('approve', { protocol: 'https', host, username: userB, password: 'pb' })
+
+      try {
+        const found = await listGcmGitCredentials()
+        expect(found).toContainEqual({ host, username: userA })
+        expect(found).toContainEqual({ host, username: userB })
+      } finally {
+        await runGitCredential('reject', { protocol: 'https', host, username: userA })
+        await runGitCredential('reject', { protocol: 'https', host, username: userB })
+      }
+    },
+  )
+
+  it('en un sistema sin PowerShell (o cualquier falla), nunca lanza — da []', async () => {
+    // No se puede simular la ausencia de PowerShell en Windows real sin
+    // tocar el PATH del proceso; se confirma en su lugar que la función
+    // resuelve siempre (nunca rechaza), que es la garantía que de verdad
+    // importa para el llamador (nunca debe bloquear vincular una cuenta).
+    const found = await listGcmGitCredentials()
+    expect(Array.isArray(found)).toBe(true)
+  })
 })
 
 describe.skipIf(!isWindows)('git-credential (R3, GCM real en Windows)', () => {

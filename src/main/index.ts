@@ -26,6 +26,7 @@ import {
   getCredentialStatus,
   getProfilePath,
   installHook,
+  findImportableGcmAccountsForHost,
   findImportableGithubCliAccount,
   findImportableGitlabCliAccount,
   linkGithubAccount,
@@ -259,6 +260,34 @@ ipcMain.handle(IPC.importGitlabCliAccount, async (_event, payload: unknown) => {
   const linked = await findImportableGitlabCliAccount(accountsStore, host)
   if (!linked) {
     throw new Error('Ya no hay ninguna sesión de glab CLI para importar en ese host.')
+  }
+  const account = await saveLinkedAccount(accountsStore, linked, label, host)
+  notify({ title: brand.displayName, body: `${account.label} vinculada` })
+  return getState()
+})
+
+// docs/product.md: "sincronizar cuentas previas a Dossier" (a) — a
+// diferencia de glab CLI (una sesión), GCM puede tener varias credenciales
+// guardadas para el mismo host: se ofrecen todas, nunca eligiendo una sola.
+const checkGcmCachedAccountsSchema = z.object({ host: z.string().min(1) })
+ipcMain.handle(IPC.checkGcmCachedAccounts, async (_event, payload: unknown) => {
+  const { host } = checkGcmCachedAccountsSchema.parse(payload)
+  const linked = await findImportableGcmAccountsForHost(accountsStore, host)
+  return linked.map((l) => ({ username: l.username, name: l.name, email: l.email }))
+})
+
+const importGcmCachedAccountSchema = z.object({
+  label: z.string().min(1),
+  host: z.string().min(1),
+  username: z.string().min(1),
+})
+ipcMain.handle(IPC.importGcmCachedAccount, async (_event, payload: unknown) => {
+  const { label, host, username } = importGcmCachedAccountSchema.parse(payload)
+  const linked = (await findImportableGcmAccountsForHost(accountsStore, host)).find(
+    (l) => l.username === username,
+  )
+  if (!linked) {
+    throw new Error('Ya no hay ninguna credencial de ese host en el gestor de credenciales de Windows.')
   }
   const account = await saveLinkedAccount(accountsStore, linked, label, host)
   notify({ title: brand.displayName, body: `${account.label} vinculada` })

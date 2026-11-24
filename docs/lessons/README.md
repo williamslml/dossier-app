@@ -377,6 +377,16 @@ Investigando cómo enumerar credenciales de GCM de forma robusta (para el ítem 
 
 **Para la próxima vez:** cuando un cambio hace guardar-y-borrar credenciales de prueba contra el Credential Manager real (no un store aislado), vale la pena confirmar la limpieza al final con una enumeración real (`cmdkey /list`, o la función de `core` si ya existe una), no solo confiar en que el camino de limpieza del código corrió — exactamente el riesgo residual que ya se había documentado a propósito en `14-almacen-secretos-ausente` (un `reject` final que falla en silencio), ahora confirmado que pasa de verdad, no solo en teoría.
 
+---
+
+# `spawn('powershell.exe', ...)` desde Node resuelve Windows PowerShell 5.1, no el pwsh 7+ de una sesión interactiva
+
+Aplica cuando: un proceso hijo de Node invoca `powershell.exe` por PATH para correr un script — no asumir que es la misma versión que la terminal donde se prueba a mano.
+
+Construyendo `listGcmGitCredentials` (ítem (a) de "sincronizar cuentas previas a Dossier"), un script de PowerShell probado a mano (con la herramienta de PowerShell de esta sesión, que es pwsh 7+) funcionaba con `ConvertTo-Json -AsArray`. El mismo script, corrido de verdad desde Node vía `spawn('powershell.exe', ...)`, fallaba en silencio (`[]` siempre) — porque `powershell.exe` resuelto por PATH en un proceso hijo es el Windows PowerShell 5.1 del sistema, y `-AsArray` no existe ahí (se agregó en 6.2+). Sin eso, pasar el resultado por el pipe a `ConvertTo-Json` además colapsa un array de un solo elemento a un objeto suelto.
+
+**Para la próxima vez:** cuando el plan sea invocar `powershell.exe` desde un proceso hijo, probar el script de verdad spawneándolo desde Node (no solo a mano en una terminal pwsh), y evitar `-AsArray`: usar `ConvertTo-Json -InputObject $resultado -Compress` (sin pipe) para que un array de 0, 1 o varios elementos siempre serialice como array, compatible con PS 5.1 y pwsh por igual — confirmado con los tres casos contra el binario real.
+
 ## Promoción a la carpeta global (`~/sfp/`)
 
 Una lección solo sube a `~/sfp/` si es recurrente (guía: ~3 apariciones **independientes**, no solo releída 3 veces), general, aplicable a otros proyectos además de este, de coste razonable y validada por ti. Nunca de forma automática por un agente.

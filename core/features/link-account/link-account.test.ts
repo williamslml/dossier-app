@@ -8,12 +8,14 @@ import { createAccountsStore } from '../accounts/accounts.ts'
 import type { AccountsStore } from '../accounts/accounts.ts'
 import type { LinkedAccount } from '../providers/github/github.ts'
 import {
+  findImportableGcmAccountsForHost,
   findImportableGithubCliAccount,
   findImportableGitlabCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
   saveLinkedAccount,
 } from './link-account.ts'
+import type { CachedGcmCredential } from '../git-credential/git-credential.ts'
 import { runGitCredential } from '../git-credential/git-credential.ts'
 import type { GithubVerification } from '../providers/github/github.ts'
 
@@ -356,6 +358,194 @@ describe('findImportableGitlabCliAccount (sincronizar cuentas previas — sin to
         },
       ),
     ).rejects.toThrow('inválido')
+  })
+})
+
+describe('findImportableGcmAccountsForHost (a, sincronizar cuentas previas — sin GCM/API real)', () => {
+  // Nunca invoca PowerShell/GCM ni la API de GitLab de verdad en un test:
+  // listCredentials/gitCredential/linkGitlab siempre inyectados.
+  const host = 'gitlab.example.com'
+
+  function linkedOf(username: string): LinkedAccount {
+    return {
+      provider: 'gitlab',
+      username,
+      id: 1,
+      name: `Usuario ${username}`,
+      email: `${username}@example.com`,
+      token: `token-${username}`,
+    }
+  }
+
+  it('sin nada guardado en GCM para ese host, no hay nada que ofrecer', async () => {
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [],
+      async () => {
+        throw new Error('nunca debería llamarse sin candidatos')
+      },
+      async () => {
+        throw new Error('nunca debería llamarse sin candidatos')
+      },
+    )
+    expect(result).toEqual([])
+  })
+
+  it('ignora credenciales guardadas para otro host', async () => {
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [{ host: 'otro-host.example.com', username: 'alguien' }],
+      async () => {
+        throw new Error('nunca debería llamarse para otro host')
+      },
+      async () => {
+        throw new Error('nunca debería llamarse para otro host')
+      },
+    )
+    expect(result).toEqual([])
+  })
+
+  it('un candidato nuevo: pide el token real con fill y lo confirma contra la API', async () => {
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [{ host, username: 'cacheado-gcm' }],
+      async (action, input) => {
+        expect(action).toBe('fill')
+        expect(input).toEqual({ protocol: 'https', host, username: 'cacheado-gcm' })
+        return { password: 'token-cacheado-gcm' }
+      },
+      async (h, token) => {
+        expect(h).toBe(host)
+        expect(token).toBe('token-cacheado-gcm')
+        return linkedOf('cacheado-gcm')
+      },
+    )
+    expect(result).toEqual([linkedOf('cacheado-gcm')])
+  })
+
+  it('la identidad real es la que confirma la API, no la etiqueta que tenía GCM', async () => {
+    // GCM guardó el username con el que se creó la credencial, pero el
+    // token puede pertenecer a otra cuenta real (nunca se confía en la
+    // etiqueta guardada, igual que con el username de glab CLI).
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [{ host, username: 'etiqueta-vieja' }],
+      async () => ({ password: 'token-real' }),
+      async () => linkedOf('usuario-real'),
+    )
+    expect(result).toEqual([linkedOf('usuario-real')])
+  })
+
+  it('una cuenta ya vinculada (mismo host y username) no se vuelve a ofrecer, ni se llama a fill para ella', async () => {
+    store.create({
+      provider: 'gitlab',
+      host,
+      label: 'Ya vinculada',
+      username: 'ya-vinculada',
+      name: 'Ya vinculada',
+      email: 'ya@example.com',
+    })
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [{ host, username: 'ya-vinculada' }],
+      async () => {
+        throw new Error('nunca debería pedirse el token de una cuenta ya vinculada')
+      },
+      async () => {
+        throw new Error('nunca debería verificarse una cuenta ya vinculada')
+      },
+    )
+    expect(result).toEqual([])
+  })
+
+  it('si la API resuelve el token a una cuenta que ya está vinculada, tampoco se ofrece', async () => {
+    store.create({
+      provider: 'gitlab',
+      host,
+      label: 'Ya vinculada',
+      username: 'usuario-real',
+      name: 'Usuario real',
+      email: 'real@example.com',
+    })
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => [{ host, username: 'etiqueta-vieja' }],
+      async () => ({ password: 'token-real' }),
+      async () => linkedOf('usuario-real'),
+    )
+    expect(result).toEqual([])
+  })
+
+  it('varios candidatos: devuelve todos los nuevos, sin elegir uno solo por su cuenta', async () => {
+    const candidates: CachedGcmCredential[] = [
+      { host, username: 'cuenta-a' },
+      { host, username: 'cuenta-b' },
+    ]
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => candidates,
+      async (_action, input) => ({ password: `token-${input.username}` }),
+      async (_h, token) => linkedOf(token.replace('token-', '')),
+    )
+    expect(result).toEqual([linkedOf('cuenta-a'), linkedOf('cuenta-b')])
+  })
+
+  it('un candidato sin token real que devolver (fill falla) se descarta en silencio, sin afectar a los demás', async () => {
+    const candidates: CachedGcmCredential[] = [
+      { host, username: 'sin-token' },
+      { host, username: 'con-token' },
+    ]
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => candidates,
+      async (_action, input) => {
+        if (input.username === 'sin-token') throw new Error('no encontrado en GCM')
+        return { password: 'token-con-token' }
+      },
+      async () => linkedOf('con-token'),
+    )
+    expect(result).toEqual([linkedOf('con-token')])
+  })
+
+  it('un candidato cuyo token ya no es válido contra la API se descarta en silencio, sin afectar a los demás', async () => {
+    const candidates: CachedGcmCredential[] = [
+      { host, username: 'token-vencido' },
+      { host, username: 'token-valido' },
+    ]
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => candidates,
+      async (_action, input) => ({ password: `token-${input.username}` }),
+      async (_h, token) => {
+        if (token === 'token-token-vencido') throw new Error('token inválido o revocado')
+        return linkedOf('token-valido')
+      },
+    )
+    expect(result).toEqual([linkedOf('token-valido')])
+  })
+
+  it('dos candidatos distintos en GCM que resuelven al mismo username real no se duplican', async () => {
+    const candidates: CachedGcmCredential[] = [
+      { host, username: 'alias-1' },
+      { host, username: 'alias-2' },
+    ]
+    const result = await findImportableGcmAccountsForHost(
+      store,
+      host,
+      async () => candidates,
+      async (_action, input) => ({ password: `token-${input.username}` }),
+      async () => linkedOf('mismo-usuario-real'),
+    )
+    expect(result).toEqual([linkedOf('mismo-usuario-real')])
   })
 })
 

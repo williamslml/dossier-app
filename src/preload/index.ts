@@ -76,6 +76,10 @@ export interface DossierApi {
     host: string,
   ): Promise<{ username: string; name: string; email: string | undefined } | null>
   importGitlabCliAccount(label: string, host: string): Promise<DossierState>
+  checkGcmCachedAccounts(
+    host: string,
+  ): Promise<{ username: string; name: string; email: string | undefined }[]>
+  importGcmCachedAccount(label: string, host: string, username: string): Promise<DossierState>
 }
 
 // S3.2 (ADR 0006): contextIsolation activo — nada se expone salvo esto.
@@ -136,6 +140,9 @@ const api: DossierApi = {
   checkGitlabCliImport: (host: string) => ipcRenderer.invoke(IPC.checkGitlabCliImport, { host }),
   importGitlabCliAccount: (label: string, host: string) =>
     ipcRenderer.invoke(IPC.importGitlabCliAccount, { label, host }),
+  checkGcmCachedAccounts: (host: string) => ipcRenderer.invoke(IPC.checkGcmCachedAccounts, { host }),
+  importGcmCachedAccount: (label: string, host: string, username: string) =>
+    ipcRenderer.invoke(IPC.importGcmCachedAccount, { label, host, username }),
 }
 
 contextBridge.exposeInMainWorld('dossier', api)

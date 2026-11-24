@@ -33,6 +33,8 @@ export const IPC = {
   importGithubCliAccount: 'importGithubCliAccount',
   checkGitlabCliImport: 'checkGitlabCliImport',
   importGitlabCliAccount: 'importGitlabCliAccount',
+  checkGcmCachedAccounts: 'checkGcmCachedAccounts',
+  importGcmCachedAccount: 'importGcmCachedAccount',
   removeAccount: 'removeAccount',
   setSigningKey: 'setSigningKey',
   clearSigningKey: 'clearSigningKey',
