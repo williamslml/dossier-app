@@ -20,9 +20,15 @@ export interface RemoveAccountDeps {
  */
 export function removeLinkedAccount(deps: RemoveAccountDeps, id: string): void {
   const { rulesStore, accountsStore, dataDir, globalConfigPath } = deps
+  // Hallazgo de revisión: si se saca primero el includeIf y recién después
+  // se desfija, un reintento tras una falla a mitad de camino (el config
+  // global bloqueado, por ejemplo) todavía encuentra la regla en
+  // rulesStore y puede terminar de limpiar el includeIf. Al revés (como
+  // estaba, mismo orden que ya usa unpinFolder en main/index.ts), un
+  // reintento ya no ve la regla borrada y nunca vuelve a sacar ese bloque.
   for (const rule of rulesStore.list().filter((r) => r.accountId === id)) {
-    rulesStore.unpin(rule.path)
     updateRegion(globalConfigPath, (region) => removeIncludeIfBlock(region, `${rule.path}/`))
+    rulesStore.unpin(rule.path)
   }
   rmSync(getProfilePath(dataDir, id), { force: true })
   accountsStore.remove(id)

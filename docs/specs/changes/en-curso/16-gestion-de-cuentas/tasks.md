@@ -29,6 +29,6 @@ Señal de alto riesgo (`includeIf`/perfiles de identidad): revisión obligatoria
 
 ## 5. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo)
+- [x] Revisión en sesión separada (señal de alto riesgo) — sin hallazgos bloqueantes. Confirmó (typecheck/lint/test propios, 142 tests en verde) que la clave de firma se arma correctamente para los dos formatos, que `clearSigningKey` no tiene efectos secundarios, que `removeLinkedAccount` nunca toca GCM/el token real (grep sobre todo el diff), que el camino feliz de la cascada es correcto, y que `RemoveAccountDialog` nunca se autodispara (el clic en la tarjeta solo abre el diálogo; "Desvincular" es la única acción que llama al IPC real). Dos hallazgos no bloqueantes, los dos corregidos: (1) el orden `unpin` → sacar `includeIf` hacía que un reintento tras una falla a mitad de camino (config global bloqueado) ya no encontrara la regla para terminar de limpiar el `includeIf` huérfano — invertido: ahora se saca el `includeIf` primero, recién después se desfija; (2) `removeAccount` en `store.ts` no recargaba `$pins` tras desvincular (invisible en la práctica porque el próximo diálogo ya lo hace, pero inconsistente con el resto de `store.ts`) — agregado `await loadPins()`
 - [ ] Merge con `finishing-a-development-branch`
 - [ ] Mover la spec a `../archivados/`

@@ -65,6 +65,10 @@ export async function clearSigningKey(id: string): Promise<void> {
 
 export async function removeAccount(id: string): Promise<void> {
   applyState(await window.dossier.removeAccount(id))
+  // Hallazgo de revisión: desvincular puede desfijar carpetas (la cascada
+  // de removeLinkedAccount) — recargar $pins acá, no solo confiar en que
+  // el próximo diálogo que se abra lo haga por su cuenta.
+  await loadPins()
 }
 
 export const $screen = atom<'principal' | 'ajustes'>('principal')
