@@ -40,7 +40,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Arranque con Windows — interruptor en Ajustes
 - [x] Detección de almacén de secretos ausente con bloqueo del guardado y aviso (defensivo; no se publica para Linux) (`docs/specs/changes/archivados/14-almacen-secretos-ausente/`)
 - [x] Instalador NSIS + auto-actualización desde GitHub Releases (`docs/specs/changes/archivados/08-release-pipeline/`) — instalador sin firmar todavía (ver el ítem de SignPath más abajo)
-- [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
+- [ ] Firmado con SignPath Foundation — pospuesto a propósito hasta tener más descargas/uso real (ver decisión abierta #3)
 - [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`
 - [x] ~~Reglas por carpeta accesibles desde Ajustes~~ — decisión revisada de nuevo al usar la app: terminó siendo al revés, un diálogo por cuenta desde la pantalla principal (`AccountFoldersDialog`), no una sección en Ajustes
 - [x] ~~Interruptor en Ajustes para aplicar la clave de firma al cambiar de cuenta activa~~ — decisión revisada al sacar "cuenta activa" de la app: la clave de firma es **parte del perfil de la cuenta** (`writeAccountProfile`, junto a `user.name`/`user.email`), no un switch global. Implementado en `16-gestion-de-cuentas`: se asigna/quita desde `AccountFoldersDialog` (el mismo lugar donde se eligen las carpetas), y cualquier carpeta fijada a esa cuenta firma automáticamente con su clave — mismo mecanismo que ya resuelve identidad por carpeta, sin ningún concepto de "activa"
@@ -54,7 +54,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 
 ### Después
 
-- [ ] Postulación y aprobación en SignPath Foundation + firma del instalador NSIS; no hay un segundo `.exe` propio que firmar
+- [ ] Postulación y aprobación en SignPath Foundation + firma del instalador NSIS; no hay un segundo `.exe` propio que firmar — pospuesto a propósito (ver decisión abierta #3)
 - [ ] Publicación en `winget` / Scoop
 - [x] README bilingüe (`README.md` en inglés, `README.es.md` en español), `CONTRIBUTING.md`, plantillas de issues (`.github/ISSUE_TEMPLATE/`), `SECURITY.md` (reporte privado vía GitHub Security Advisories, sin exponer un email personal)
 
@@ -158,7 +158,7 @@ TypeScript estricto y la CI en tres sistemas se configuraron en la Fase 0, antes
 
 1. **`client_id` de la OAuth App de GitHub** — **resuelta**: `Ov23liZi9KS6Wf5C1aJ5` (Device Flow habilitado), registrada en `core/features/providers/github/github.ts`. No es secreto.
 2. **Formato del correo noreply**: GitHub — **confirmado en vivo** (Fase 2): `ID+usuario@users.noreply.github.com` para cuentas creadas desde el 18-07-2017 (verificado con una cuenta real). GitLab sigue sin confirmar oficialmente — `core/features/providers/gitlab` no inventa un patrón: usa `email`/`public_email` de la API tal cual, o `undefined` si ninguno viene.
-3. **Aprobación de SignPath Foundation**: gestionar la postulación; el pipeline de release debe estar listo antes de solicitarla. Pendiente de Fase 5.
+3. **Aprobación de SignPath Foundation**: **decisión del usuario, pospuesta a propósito** — el formulario real de postulación (`signpath.org/apply`) pide un campo "Reputation" (links o datos que muestren que el proyecto ya es usado/confiable: cobertura, estadísticas de descarga, actividad de comunidad), que Dossier todavía no tiene por ser nuevo. Se retoma más adelante, cuando haya más descargas/uso real que mostrar ahí — no tiene sentido postular antes y arriesgar un rechazo por falta de trayectoria. Mientras tanto, el instalador sigue sin firmar (SmartScreen avisa, documentado como esperado).
 4. **Notificaciones en instalador real**: verificar `AppUserModelID` + `ToastActivatorCLSID` y el acceso directo del menú Inicio con NSIS, no solo en modo dev. Pendiente de Fase 5.
 5. **Target de `electron-vite` 6**: ~~verificar build con Electron 45 y dejar fijado `node24.22 / chrome156`~~ — **resuelta, ver ADR 0002**.
 6. **Spike GCM en Git for Windows real**: **resuelta**. `approve`→`fill` por `username` confirmado con dos cuentas del mismo host (host desconocido para GCM) y sin interacción. Verificación en vivo adicional con una cuenta real de `github.com` (Fase 2): GitHub **no** exige `x-access-token`, se usa el `login` real — pero se encontró que GCM parece resolver la identidad real del token para hosts que reconoce nativamente, en vez de confiar ciegamente en el `username` de `approve` (ver `docs/lessons/README.md` y `docs/adr/0004`).
