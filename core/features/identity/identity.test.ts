@@ -59,5 +59,41 @@ describe('writeAccountProfile (M4.2)', () => {
     expect(await gitConfigGetFile(profilePath, 'credential.github.com.username')).toBe('juan-dev')
     expect(await gitConfigGetFile(profilePath, 'credential.github.com.useHttpPath')).toBe('false')
   })
+
+  it('sin clave de firma asignada, no escribe nada de firma (docs/product.md)', async () => {
+    await writeAccountProfile(dataDir, account)
+    const profilePath = getProfilePath(dataDir, account.id)
+    expect(await gitConfigGetFile(profilePath, 'user.signingkey')).toBeUndefined()
+    expect(await gitConfigGetFile(profilePath, 'gpg.format')).toBeUndefined()
+    expect(await gitConfigGetFile(profilePath, 'commit.gpgsign')).toBeUndefined()
+  })
+
+  it('con clave de firma asignada, escribe la config real de Git para firmar (docs/product.md: parte del perfil, nunca un switch global)', async () => {
+    const conFirma: Account = {
+      ...account,
+      signingKey: { format: 'ssh', keyId: '~/.ssh/id_ed25519.pub' },
+    }
+    await writeAccountProfile(dataDir, conFirma)
+    const profilePath = getProfilePath(dataDir, account.id)
+    expect(await gitConfigGetFile(profilePath, 'user.signingkey')).toBe('~/.ssh/id_ed25519.pub')
+    expect(await gitConfigGetFile(profilePath, 'gpg.format')).toBe('ssh')
+    expect(await gitConfigGetFile(profilePath, 'commit.gpgsign')).toBe('true')
+  })
+
+  it('sacar la clave de firma después de haberla asignado borra esa config del perfil (hallazgo real: writeProfileConfig nunca hace unset)', async () => {
+    const conFirma: Account = {
+      ...account,
+      signingKey: { format: 'openpgp', keyId: 'ABCDEF123456' },
+    }
+    await writeAccountProfile(dataDir, conFirma)
+    await writeAccountProfile(dataDir, account) // misma cuenta, ya sin signingKey
+
+    const profilePath = getProfilePath(dataDir, account.id)
+    expect(await gitConfigGetFile(profilePath, 'user.signingkey')).toBeUndefined()
+    expect(await gitConfigGetFile(profilePath, 'gpg.format')).toBeUndefined()
+    expect(await gitConfigGetFile(profilePath, 'commit.gpgsign')).toBeUndefined()
+    // El resto del perfil sigue intacto.
+    expect(await gitConfigGetFile(profilePath, 'user.email')).toBe('juan@users.noreply.github.com')
+  })
 })
 

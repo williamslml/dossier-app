@@ -72,5 +72,8 @@ export {
 export type { CloneAccount } from './features/clone/clone.ts'
 export { cloneRepo, InvalidCloneUrlError, validateCloneUrl } from './features/clone/clone.ts'
 
+export type { RemoveAccountDeps } from './features/account-lifecycle/account-lifecycle.ts'
+export { removeLinkedAccount } from './features/account-lifecycle/account-lifecycle.ts'
+
 export type { DoctorCheck } from './features/doctor/doctor.ts'
 export { runDoctor } from './features/doctor/doctor.ts'

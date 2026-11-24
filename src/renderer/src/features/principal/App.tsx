@@ -17,6 +17,7 @@ import { AccountCard } from './AccountCard.tsx'
 import { AccountFoldersDialog } from './AccountFoldersDialog.tsx'
 import { AddButtons } from './AddButtons.tsx'
 import { IdentityConflicts } from './IdentityConflicts.tsx'
+import { RemoveAccountDialog } from './RemoveAccountDialog.tsx'
 import { StatusToast } from './StatusToast.tsx'
 import { Footer } from './Footer.tsx'
 import { Ajustes } from './Ajustes.tsx'
@@ -27,7 +28,9 @@ export function App() {
   const screen = useStore($screen)
   const credentialStatus = useStore($credentialStatus)
   const [foldersForAccountId, setFoldersForAccountId] = useState<string | null>(null)
+  const [removingAccountId, setRemovingAccountId] = useState<string | null>(null)
   const foldersAccount = state.accounts.find((a) => a.id === foldersForAccountId)
+  const removingAccount = state.accounts.find((a) => a.id === removingAccountId)
 
   useEffect(() => {
     void loadState()
@@ -90,6 +93,7 @@ export function App() {
                     key={account.id}
                     account={account}
                     onManageFolders={setFoldersForAccountId}
+                    onRemove={setRemovingAccountId}
                   />
                 ))}
               </div>
@@ -103,6 +107,13 @@ export function App() {
           <AccountFoldersDialog
             account={foldersAccount}
             onClose={() => setFoldersForAccountId(null)}
+          />
+        )}
+        {removingAccount && (
+          <RemoveAccountDialog
+            account={removingAccount}
+            onClose={() => setRemovingAccountId(null)}
+            onRemoved={() => setRemovingAccountId(null)}
           />
         )}
       </div>

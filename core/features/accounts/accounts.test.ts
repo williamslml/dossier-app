@@ -77,6 +77,18 @@ describe('accounts (M2)', () => {
     expect(() => store.setSigningKey('no-existe', { format: 'openpgp', keyId: 'ABC123' })).toThrow()
   })
 
+  it('quita la clave de firma asignada, sin tocar el resto', () => {
+    const created = store.create(newAccount)
+    store.setSigningKey(created.id, { format: 'ssh', keyId: '~/.ssh/id_ed25519.pub' })
+    const cleared = store.clearSigningKey(created.id)
+    expect(cleared).toEqual(created)
+    expect('signingKey' in cleared).toBe(false)
+  })
+
+  it('quitar una clave de firma a un id inexistente lanza', () => {
+    expect(() => store.clearSigningKey('no-existe')).toThrow()
+  })
+
   it('al eliminar una cuenta, recuerda su host+username (S9.2, 05-ajustes)', () => {
     const created = store.create(newAccount)
     store.remove(created.id)

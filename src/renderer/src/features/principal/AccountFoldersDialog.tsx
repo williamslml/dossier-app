@@ -1,7 +1,102 @@
 import { useStore } from '@nanostores/preact'
 import { useEffect, useState } from 'preact/hooks'
-import { $pins, loadPins, pinFolder, setEnforced, unpinFolder } from './store.ts'
+import {
+  $pins,
+  clearSigningKey,
+  loadPins,
+  pinFolder,
+  setEnforced,
+  setSigningKey,
+  unpinFolder,
+} from './store.ts'
 import type { Account } from '../../../../preload/index.ts'
+
+/** docs/product.md: la clave de firma es parte del perfil de la cuenta, se
+    asigna junto a las carpetas que se van a vincular — nunca un switch
+    global aparte. Dossier no genera ni importa claves, solo referencia una
+    ya existente (el usuario la crea con `ssh-keygen`/`gpg --gen-key`). */
+function SigningKeySection({ account }: { account: Account }) {
+  const [format, setFormat] = useState<'openpgp' | 'ssh'>('openpgp')
+  const [keyIdDraft, setKeyIdDraft] = useState('')
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  async function handleAssign(event: Event): Promise<void> {
+    event.preventDefault()
+    const trimmed = keyIdDraft.trim()
+    if (!trimmed) return
+    setSaving(true)
+    setError(null)
+    try {
+      await setSigningKey(account.id, format, trimmed)
+      setKeyIdDraft('')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo asignar la clave.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  async function handleClear(): Promise<void> {
+    setSaving(true)
+    setError(null)
+    try {
+      await clearSigningKey(account.id)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'No se pudo quitar la clave.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <div class="settings-group">
+      <span class="pin-account">Clave de firma de commits</span>
+      {account.signingKey ? (
+        <div class="pin-row">
+          <span class="pin-path" title={account.signingKey.keyId}>
+            {account.signingKey.keyId}
+          </span>
+          <span class="pin-account">
+            {account.signingKey.format === 'ssh' ? 'SSH' : 'OpenPGP'}
+          </span>
+          <button
+            type="button"
+            class="icon-action-btn"
+            title="Quitar clave"
+            disabled={saving}
+            onClick={() => void handleClear()}
+          >
+            <svg width="13" height="13">
+              <use href="#icon-x" />
+            </svg>
+          </button>
+        </div>
+      ) : (
+        <form class="pin-add-form" onSubmit={(e) => void handleAssign(e)}>
+          <select
+            class="dialog-input"
+            value={format}
+            onInput={(e) => setFormat((e.target as HTMLSelectElement).value as 'openpgp' | 'ssh')}
+          >
+            <option value="openpgp">OpenPGP (fingerprint)</option>
+            <option value="ssh">SSH (ruta a la clave pública)</option>
+          </select>
+          <input
+            class="dialog-input"
+            placeholder={format === 'ssh' ? '~/.ssh/id_ed25519.pub' : 'Fingerprint de la clave'}
+            value={keyIdDraft}
+            onInput={(e) => setKeyIdDraft((e.target as HTMLInputElement).value)}
+          />
+          {error && <p class="dialog-error">{error}</p>}
+          <button type="submit" class="btn-add btn-secondary" disabled={saving || !keyIdDraft.trim()}>
+            {saving ? 'Asignando…' : 'Asignar clave'}
+          </button>
+        </form>
+      )}
+    </div>
+  )
+}
 
 export function AccountFoldersDialog({
   account,
@@ -59,6 +154,8 @@ export function AccountFoldersDialog({
             </svg>
           </button>
         </div>
+
+        <SigningKeySection account={account} />
 
         <div class="pins-list">
           {pins.length === 0 && (

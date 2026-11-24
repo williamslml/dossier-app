@@ -43,6 +43,9 @@ export interface DossierApi {
   onGithubVerification(callback: (verification: GithubVerification) => void): () => void
   linkGitlab(data: { label: string; host: string; token: string }): Promise<DossierState>
   renameAccount(data: { id: string; label: string }): Promise<DossierState>
+  setSigningKey(data: { id: string; format: 'openpgp' | 'ssh'; keyId: string }): Promise<DossierState>
+  clearSigningKey(id: string): Promise<DossierState>
+  removeAccount(id: string): Promise<DossierState>
   openExternal(url: string): Promise<void>
   getSettings(): Promise<Settings & { shouldUseDarkColors: boolean }>
   setSettings(partial: Partial<Settings>): Promise<Settings & { shouldUseDarkColors: boolean }>
@@ -86,6 +89,10 @@ const api: DossierApi = {
   linkGitlab: (data) => ipcRenderer.invoke(IPC.linkGitlab, data),
   renameAccount: (data: { id: string; label: string }) =>
     ipcRenderer.invoke(IPC.renameAccount, data),
+  setSigningKey: (data: { id: string; format: 'openpgp' | 'ssh'; keyId: string }) =>
+    ipcRenderer.invoke(IPC.setSigningKey, data),
+  clearSigningKey: (id: string) => ipcRenderer.invoke(IPC.clearSigningKey, { id }),
+  removeAccount: (id: string) => ipcRenderer.invoke(IPC.removeAccount, { id }),
   openExternal: (url: string) => ipcRenderer.invoke(IPC.openExternal, { url }),
   getSettings: () => ipcRenderer.invoke(IPC.getSettings),
   setSettings: (partial: Partial<Settings>) => ipcRenderer.invoke(IPC.setSettings, partial),

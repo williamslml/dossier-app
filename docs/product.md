@@ -43,7 +43,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [ ] Firmado con SignPath Foundation (una vez aprobada la postulación)
 - [x] Tema (claro/oscuro/según el sistema) — hecho en `05-ajustes`
 - [x] ~~Reglas por carpeta accesibles desde Ajustes~~ — decisión revisada de nuevo al usar la app: terminó siendo al revés, un diálogo por cuenta desde la pantalla principal (`AccountFoldersDialog`), no una sección en Ajustes
-- [ ] ~~Interruptor en Ajustes para aplicar la clave de firma al cambiar de cuenta activa~~ — decisión revisada al sacar "cuenta activa" de la app (ver arriba): la clave de firma debería ser **parte del perfil de la cuenta** (`writeAccountProfile`, junto a `user.name`/`user.email`), no algo atado a un switch global. Así, cualquier carpeta fijada a esa cuenta firma automáticamente con su clave — mismo mecanismo que ya resuelve identidad por carpeta, sin ningún concepto de "activa". Sigue sin existir la UI para asignarle una clave a una cuenta (paso previo necesario); el switch viejo (atado al diseño anterior) se sacó de Ajustes
+- [x] ~~Interruptor en Ajustes para aplicar la clave de firma al cambiar de cuenta activa~~ — decisión revisada al sacar "cuenta activa" de la app: la clave de firma es **parte del perfil de la cuenta** (`writeAccountProfile`, junto a `user.name`/`user.email`), no un switch global. Implementado en `16-gestion-de-cuentas`: se asigna/quita desde `AccountFoldersDialog` (el mismo lugar donde se eligen las carpetas), y cualquier carpeta fijada a esa cuenta firma automáticamente con su clave — mismo mecanismo que ya resuelve identidad por carpeta, sin ningún concepto de "activa"
 - [x] ~~Carpeta base por defecto para Quick Clone, y si la cuenta activa queda aislada~~ — decisión revisada: Quick Clone va a pedir carpeta y cuenta en el momento de clonar, no desde una preferencia global; se sacó de `Settings`
 - [x] Atajo de teclado global para abrir/ocultar la ventana (`Ctrl+Shift+D`)
 - [x] Mantenimiento de credenciales: limpia entradas huérfanas que GCM tiene guardadas (solo las que Dossier reconoce como propias)
@@ -94,7 +94,7 @@ El host de GitLab es configurable desde el inicio, lo que deja resuelto el sopor
 
 ### 3.4 IPC — API que expone el preload (Fase 3)
 
-`getState` — **hecho** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). También hechos desde entonces: `startGithubLink` (emite `user_code` por evento) · `linkGitlab` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` · `getSettings` · `setSettings` · `openExternal` · `renameAccount` · `getCredentialStatus` · `recheckCredentials`. `selectAccount` existió y se sacó entero (concepto de "cuenta activa", ver `docs/lessons/README.md`). Pendiente: `removeAccount`.
+`getState` — **hecho** (parte 1 de Fase 3) — más `hideWindow` (no estaba en esta lista original: lo pidió el botón de cerrar de la ventana centrada). También hechos desde entonces: `startGithubLink` (emite `user_code` por evento) · `linkGitlab` · `listPins` · `pinFolder` · `unpinFolder` · `pickFolder` · `cloneRepo` · `getSettings` · `setSettings` · `openExternal` · `renameAccount` · `getCredentialStatus` · `recheckCredentials` · `setSigningKey` · `clearSigningKey` · `removeAccount`. `selectAccount` existió y se sacó entero (concepto de "cuenta activa", ver `docs/lessons/README.md`).
 
 Cada handler valida el origen del mensaje y el esquema de entrada con **zod**. **Nunca se envía un token al renderer.**
 

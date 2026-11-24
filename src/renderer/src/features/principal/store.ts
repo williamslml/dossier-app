@@ -51,6 +51,22 @@ export async function renameAccount(id: string, label: string): Promise<void> {
   applyState(await window.dossier.renameAccount({ id, label }))
 }
 
+export async function setSigningKey(
+  id: string,
+  format: 'openpgp' | 'ssh',
+  keyId: string,
+): Promise<void> {
+  applyState(await window.dossier.setSigningKey({ id, format, keyId }))
+}
+
+export async function clearSigningKey(id: string): Promise<void> {
+  applyState(await window.dossier.clearSigningKey(id))
+}
+
+export async function removeAccount(id: string): Promise<void> {
+  applyState(await window.dossier.removeAccount(id))
+}
+
 export const $screen = atom<'principal' | 'ajustes'>('principal')
 
 export const $settings = atom<Settings>({

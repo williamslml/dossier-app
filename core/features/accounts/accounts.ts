@@ -32,6 +32,7 @@ export interface AccountsStore {
   create(data: Omit<Account, 'id'>): Account
   rename(id: string, label: string): Account
   setSigningKey(id: string, signingKey: NonNullable<Account['signingKey']>): Account
+  clearSigningKey(id: string): Account
   remove(id: string): void
   listRemoved(): RemovedAccountRef[]
 }
@@ -82,6 +83,16 @@ export function createAccountsStore(options?: { cwd?: string }): AccountsStore {
 
     setSigningKey(id: string, signingKey: NonNullable<Account['signingKey']>): Account {
       return replace(id, (existing) => ({ ...existing, signingKey }))
+    },
+
+    clearSigningKey(id: string): Account {
+      // exactOptionalPropertyTypes: hay que omitir la clave entera, nunca
+      // asignarle `undefined` (eso cuenta como "presente mas sin valor").
+      return replace(id, (existing) => {
+        const rest: Account = { ...existing }
+        delete rest.signingKey
+        return rest
+      })
     },
 
     remove(id: string): void {

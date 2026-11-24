@@ -29,6 +29,7 @@ import {
   findImportableGithubCliAccount,
   linkGithubAccount,
   linkGitlabAccount,
+  removeLinkedAccount,
   saveLinkedAccount,
   readConflicts,
   renderIncludeIfBlock,
@@ -122,6 +123,13 @@ const removeOrphanedCredentialSchema = z.object({
 })
 const setEnforcedSchema = z.object({ path: z.string().min(1), enforced: z.boolean() })
 const renameAccountSchema = z.object({ id: z.string().min(1), label: z.string().trim().min(1) })
+const setSigningKeySchema = z.object({
+  id: z.string().min(1),
+  format: z.enum(['openpgp', 'ssh']),
+  keyId: z.string().trim().min(1),
+})
+const clearSigningKeySchema = z.object({ id: z.string().min(1) })
+const removeAccountSchema = z.object({ id: z.string().min(1) })
 const resolveIdentityConflictSchema = z.object({
   repoPath: z.string().min(1),
   action: z.enum(['aplicar', 'bloquear', 'reconectar']),
@@ -161,6 +169,34 @@ ipcMain.handle(IPC.linkGitlab, async (_event, payload: unknown) => {
 ipcMain.handle(IPC.renameAccount, (_event, payload: unknown) => {
   const { id, label } = renameAccountSchema.parse(payload)
   accountsStore.rename(id, label)
+  return getState()
+})
+
+// docs/product.md: la clave de firma es parte del perfil de la cuenta
+// (nunca un switch global) — regenerar el perfil es lo que de verdad la
+// activa para cualquier carpeta ya fijada a esta cuenta.
+ipcMain.handle(IPC.setSigningKey, async (_event, payload: unknown) => {
+  const { id, format, keyId } = setSigningKeySchema.parse(payload)
+  const account = accountsStore.setSigningKey(id, { format, keyId })
+  await writeAccountProfile(dataDir, account)
+  return getState()
+})
+
+ipcMain.handle(IPC.clearSigningKey, async (_event, payload: unknown) => {
+  const { id } = clearSigningKeySchema.parse(payload)
+  const account = accountsStore.clearSigningKey(id)
+  await writeAccountProfile(dataDir, account)
+  return getState()
+})
+
+// docs/product.md: desvincular una cuenta también desfija sus carpetas y
+// saca su includeIf — nunca deja una carpeta apuntando a un perfil que ya
+// no corresponde a nada. El token en GCM no se borra acá: desvincular y
+// revocar son dos decisiones distintas (la cuenta queda como huérfana,
+// limpiable a propósito desde Ajustes, S9 de 05-ajustes).
+ipcMain.handle(IPC.removeAccount, (_event, payload: unknown) => {
+  const { id } = removeAccountSchema.parse(payload)
+  removeLinkedAccount({ rulesStore, accountsStore, dataDir, globalConfigPath }, id)
   return getState()
 })
 

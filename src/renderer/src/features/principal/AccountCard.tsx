@@ -28,9 +28,11 @@ function initials(label: string): string {
 export function AccountCard({
   account,
   onManageFolders,
+  onRemove,
 }: {
   account: Account
   onManageFolders: (id: string) => void
+  onRemove: (id: string) => void
 }) {
   const providerIcon = account.provider === 'github' ? '#icon-github' : '#icon-gitlab'
   const providerName = account.provider === 'github' ? 'GitHub' : 'GitLab'
@@ -111,9 +113,11 @@ export function AccountCard({
         </button>
         <button
           class="icon-action-btn delete"
-          title="Desvincular cuenta (próximamente)"
-          disabled
-          onClick={(e) => e.stopPropagation()}
+          title="Desvincular cuenta"
+          onClick={(e) => {
+            e.stopPropagation()
+            onRemove(account.id)
+          }}
         >
           <svg width="13" height="13">
             <use href="#icon-x" />
