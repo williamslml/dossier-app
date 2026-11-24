@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks'
+import { useEffect, useRef, useState } from 'preact/hooks'
 import { applyState, showToast } from './store.ts'
 
 type CliImport = { username: string; name: string; email: string | undefined }
@@ -36,17 +36,29 @@ export function GitlabLinkDialog({
   // chequear cada vez que termina de editarlo, no solo al montar.
   const [cliImport, setCliImport] = useState<CliImport | null>(null)
   const [importingCli, setImportingCli] = useState(false)
+  // Hallazgo de revisión: dos chequeos pueden solaparse (el usuario pierde
+  // foco del campo, edita, y vuelve a perder foco antes de que resuelva el
+  // primero) — si el de un dominio viejo tarda más, podría pisar el
+  // resultado ya correcto del dominio actual. Esta ref guarda cuál es el
+  // dominio vigente; una respuesta para un dominio que ya no es el actual
+  // se descarta en vez de aplicarse.
+  const latestHostChecked = useRef('')
 
   async function checkCliImport(forHost: string): Promise<void> {
     const trimmed = forHost.trim()
+    latestHostChecked.current = trimmed
     if (!trimmed) {
       setCliImport(null)
       return
     }
+    let result: CliImport | null
     try {
-      setCliImport(await window.dossier.checkGitlabCliImport(trimmed))
+      result = await window.dossier.checkGitlabCliImport(trimmed)
     } catch {
-      setCliImport(null)
+      result = null
+    }
+    if (latestHostChecked.current === trimmed) {
+      setCliImport(result)
     }
   }
 

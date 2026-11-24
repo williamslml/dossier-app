@@ -28,6 +28,6 @@ Señal de alto riesgo (confirma un token real contra la API y lo guarda en GCM):
 
 ## 5. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo)
-- [ ] Merge con `finishing-a-development-branch`
-- [ ] Mover la spec a `../archivados/`
+- [x] Revisión en sesión separada (señal de alto riesgo) — sin hallazgos bloqueantes. Confirmó (typecheck/lint/test propios, 153 tests en verde) que el token de `glab` nunca llega al renderer, que `importGitlabCliAccount` vuelve a verificar del lado de `main` sin depender del renderer, que el filtro de "ya vinculada" distingue correctamente cuentas del mismo username en hosts distintos (con un test real para ese caso), que el ensanchamiento de `ExecFile` (stderr opcional) no rompe `findGithubCliToken`, y que un fallo de verificación nunca se muestra como error de diálogo durante la detección pasiva. Un hallazgo no bloqueante corregido: `checkCliImport` no tenía guarda de "último dominio gana" — si dos chequeos se solapaban (el usuario edita el dominio dos veces rápido, perdiendo foco cada vez), la respuesta más lenta de un dominio viejo podía pisar el resultado ya correcto del dominio actual (nunca una fuga de token ni una vinculación incorrecta, `importGitlabCliAccount` siempre re-verifica — solo un cartel transitoriamente desincronizado). Corregido con una ref que descarta respuestas para un dominio que ya no es el vigente
+- [x] Merge con `finishing-a-development-branch` — mergeado localmente a `main` (sin conflictos), `pnpm typecheck && pnpm lint && pnpm test` en verde sobre el resultado, rama `feat/sincronizar-glab-cli` borrada
+- [x] Mover la spec a `../archivados/`
