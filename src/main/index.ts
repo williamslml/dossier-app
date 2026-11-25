@@ -57,6 +57,18 @@ import { IPC } from '../shared/ipc-channels.ts'
 import { notify, registerNotificationClickHandler } from './notify.ts'
 import { resolveGlobalConfigPath } from './identity.ts'
 
+// Hallazgo real: sin esto, nada impide que la app se abra dos veces (p. ej.
+// un doble clic en el acceso directo, o el arranque automático de Windows
+// compitiendo con uno manual) — dos procesos completos corriendo a la vez,
+// cada uno con su propio ícono de bandeja y su propia ventana, escribiendo
+// los mismos archivos de `~/.dossier/` sin coordinarse entre sí. Tiene que
+// ser lo primero que corre el archivo: si ya hay una instancia, esta sale
+// de inmediato, antes de crear nada (ventana, bandeja, watchers).
+if (!app.requestSingleInstanceLock()) {
+  app.quit()
+  process.exit(0)
+}
+
 // ADR 0005: AppUserModelID coincide con el appId de electron-builder.
 app.setAppUserModelId(brand.appId)
 
@@ -665,6 +677,14 @@ const mb = menubar({
       sandbox: true,
     },
   },
+})
+
+// Un segundo intento de abrir la app (mismo caso que requestSingleInstanceLock
+// de arriba) no debe quedar en silencio — muestra la ventana de la instancia
+// que ya está corriendo, como esperaría cualquiera que haga doble clic de
+// nuevo en el ícono.
+app.on('second-instance', () => {
+  mb.showWindow()
 })
 
 // Botón de cerrar del título (TitleBar.tsx): oculta la ventana, vuelve a
