@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256" shape-rendering="geometricPrecision">
+  <title>Dossier</title>
+  <circle cx="128" cy="128" r="124" fill="#0B0B0C"/>
+  <g fill="none" stroke="#FFFFFF" stroke-width="14" stroke-linecap="round" stroke-linejoin="round">
+    <!-- tronco vertical -->
+    <path d="M100 66 V146"/>
+    <!-- nodo inferior -->
+    <circle cx="100" cy="172" r="20"/>
+    <!-- nodo superior derecho -->
+    <circle cx="160" cy="86" r="20"/>
+    <!-- rama curva -->
+    <path d="M160 106 V118 C160 142 140 152 118 158"/>
+  </g>
+</svg>
