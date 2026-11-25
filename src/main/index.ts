@@ -1,5 +1,6 @@
+import { mkdirSync, readFileSync, readdirSync, watch } from 'node:fs'
 import { homedir } from 'node:os'
-import { join } from 'node:path'
+import { basename, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { app, dialog, globalShortcut, ipcMain, Menu, nativeTheme, shell } from 'electron'
 import { menubar } from 'electron-menubar'
@@ -19,10 +20,12 @@ import {
   createAccountsStore,
   createRulesStore,
   createSettingsStore,
+  diffNewConflictFiles,
   ensureActiveInclude,
   findOverlap,
   getActiveConfigPath,
   getConflictPath,
+  getConflictsDir,
   getCredentialStatus,
   getProfilePath,
   installHook,
@@ -46,6 +49,7 @@ import {
   runDoctor,
   runGitCredential,
   type Account,
+  type ConflictRecord,
   type HookName,
   type Theme,
 } from '../../core/index.ts'
@@ -510,6 +514,56 @@ ipcMain.handle(IPC.resolveIdentityConflict, async (_event, payload: unknown) => 
     username: expectedAccount.username,
   })
   clearConflict(dataDir, repoPath)
+})
+
+/**
+ * Notificar un conflicto de identidad sin depender de que se abra la
+ * ventana (hallazgo real: con la ventana oculta en la bandeja, un
+ * conflicto nuevo nunca se avisaba hasta la próxima vez que alguien la
+ * abriera — podían pasar días sin enterarse). `fs.watch` sobre la carpeta
+ * entera (nunca un archivo puntual: más simple, y el nombre que reporta el
+ * evento no siempre es confiable en Windows) + `diffNewConflictFiles`
+ * (core, puro) para distinguir un archivo genuinamente nuevo de uno ya
+ * conocido — evita avisar dos veces por eventos duplicados de `fs.watch`
+ * (hallazgo real de Node en Windows). Defensivo, no garantizado: si
+ * `fs.watch` no captura un evento puntual, la tarjeta de conflicto en la
+ * ventana (`listIdentityConflicts`, ya existente) sigue siendo el camino
+ * confiable — esto es un aviso adicional, nunca el único.
+ */
+const conflictsDir = getConflictsDir(dataDir)
+mkdirSync(conflictsDir, { recursive: true })
+
+function listConflictFiles(): string[] {
+  try {
+    return readdirSync(conflictsDir).filter((name) => name.endsWith('.json'))
+  } catch {
+    return []
+  }
+}
+
+// No avisa de conflictos que ya existían antes de que arrancara la app —
+// esos ya se ven en la tarjeta de la ventana la primera vez que se abra,
+// sin necesidad de un aviso adicional encima.
+let knownConflictFiles = listConflictFiles()
+
+watch(conflictsDir, { persistent: true }, () => {
+  const current = listConflictFiles()
+  const newFiles = diffNewConflictFiles(knownConflictFiles, current)
+  knownConflictFiles = current
+
+  for (const name of newFiles) {
+    try {
+      const record = JSON.parse(readFileSync(join(conflictsDir, name), 'utf8')) as ConflictRecord
+      log.info('conflicto de identidad detectado', record.repoPath)
+      notify({
+        title: brand.displayName,
+        body: `"${basename(record.repoPath)}" se commiteó con una identidad distinta a la fijada. Abrí Dossier para resolverlo.`,
+        important: true,
+      })
+    } catch (err) {
+      log.error('no se pudo leer un conflicto de identidad nuevo', err)
+    }
+  }
 })
 
 ipcMain.handle(IPC.listOrphanedCredentials, async () => {

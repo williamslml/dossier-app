@@ -34,6 +34,7 @@ No se entrega una versión reducida: el producto se construye entero. El orden d
 - [x] Identidad y cuenta HTTPS por carpeta con `includeIf` — confirmado
 - [x] Etiquetas editables (`docs/specs/changes/archivados/11-etiquetas-editables/`)
 - [x] Pin de carpetas — desde un diálogo por cuenta en la pantalla principal (no desde Ajustes, ver más abajo), con guardia de identidad opcional por carpeta (hooks de `pre-commit`/`pre-push`)
+- [x] Notificación nativa de Windows cuando el hook de guardia detecta un conflicto de identidad, sin depender de que se abra la ventana (`docs/specs/changes/archivados/19-notificar-conflicto-identidad/`) — antes, con la ventana oculta en la bandeja, un conflicto nuevo recién se veía la próxima vez que alguien abriera la ventana (podían pasar días). La tarjeta en la ventana sigue siendo el mecanismo confiable; esto es un aviso adicional
 - [x] Quick Clone con Auto-Pin (`docs/specs/changes/archivados/07-quick-clone/`)
 - [x] Doctor: valida que Git resuelve identidad y `username` correctos dentro de un repo de cada carpeta fijada; en carpetas sin repo solo valida el archivo generado (`docs/specs/changes/archivados/13-doctor/`)
 - [x] Host de GitLab configurable desde la UI — `GitlabLinkDialog.tsx` pide el dominio libremente (por defecto `gitlab.com`, funciona igual para un servidor autoalojado)

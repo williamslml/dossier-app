@@ -67,7 +67,9 @@ export type { ConflictRecord, HookName } from './features/identity-guard/identit
 export {
   buildHookScript,
   clearConflict,
+  diffNewConflictFiles,
   getConflictPath,
+  getConflictsDir,
   installHook,
   readConflicts,
   uninstallHook,

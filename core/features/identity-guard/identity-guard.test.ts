@@ -6,6 +6,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import {
   buildHookScript,
   clearConflict,
+  diffNewConflictFiles,
   getConflictPath,
   getConflictsDir,
   HOOK_MARKER,
@@ -227,6 +228,28 @@ describe('integración real con Git (S11.3)', () => {
       actualEmail: 'equivocada@x.com',
       hook: 'pre-commit',
     })
+  })
+})
+
+describe('diffNewConflictFiles (notificar conflicto de identidad sin abrir la ventana)', () => {
+  it('sin nada conocido antes, cada archivo actual es "nuevo"', () => {
+    expect(diffNewConflictFiles([], ['a.json', 'b.json'])).toEqual(['a.json', 'b.json'])
+  })
+
+  it('un archivo ya conocido no se vuelve a reportar', () => {
+    expect(diffNewConflictFiles(['a.json'], ['a.json', 'b.json'])).toEqual(['b.json'])
+  })
+
+  it('sin archivos nuevos, da una lista vacía', () => {
+    expect(diffNewConflictFiles(['a.json'], ['a.json'])).toEqual([])
+  })
+
+  it('un archivo que desapareció (conflicto resuelto) no cuenta como nuevo si reaparece recién después', () => {
+    // El resuelto ya no está en "actual" — si vuelve a aparecer más
+    // adelante (un conflicto nuevo de verdad), el llamador pasa el "actual"
+    // de ESE momento, sin el archivo viejo en "conocidos" — por eso esta
+    // función no necesita saber nada de "resuelto", solo compara dos listas.
+    expect(diffNewConflictFiles(['a.json', 'b.json'], ['a.json'])).toEqual([])
   })
 })
 

@@ -123,6 +123,23 @@ export function uninstallHook(repoPath: string, hookName: HookName): void {
   rmSync(hookPath)
 }
 
+/**
+ * Notificar un conflicto sin depender de que se abra la ventana (hallazgo:
+ * con la ventana oculta, un conflicto nuevo nunca se avisaba hasta la
+ * próxima vez que alguien la abriera — podían pasar días). `main` vigila
+ * `getConflictsDir` con `fs.watch` y usa esto para distinguir un archivo
+ * genuinamente nuevo (recién escrito por el hook) de uno ya conocido de
+ * antes (evita avisar de nuevo por eventos duplicados de `fs.watch`, un
+ * hallazgo real de Windows). Función pura — compara dos listas de nombres
+ * de archivo, nunca toca el disco ni sabe nada de "resuelto": si un
+ * conflicto se resuelve y el mismo archivo reaparece más tarde, el
+ * llamador ya no lo tiene en su set de "conocidos" y vuelve a contar como
+ * nuevo, sin lógica especial acá. */
+export function diffNewConflictFiles(known: string[], current: string[]): string[] {
+  const knownSet = new Set(known)
+  return current.filter((name) => !knownSet.has(name))
+}
+
 /** S11.4: `main` relee esto cada vez que la ventana se muestra — nunca un
     watcher, la diferencia de inmediatez no importa (ver design.md). */
 export function readConflicts(dataDir: string): ConflictRecord[] {
