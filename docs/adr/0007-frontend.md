@@ -2,7 +2,7 @@
 
 ## Status
 
-Aceptado (implementación: Fase 3, todavía no construida — este ADR fija las decisiones para cuando se construya)
+Aceptado e implementado (Fase 3). Dos piezas del catálogo original no se llegaron a usar en la implementación real — ver nota al final de "Stack".
 
 ## Context
 
@@ -24,6 +24,8 @@ Visualmente **muy parecido al prototipo**: mismo CSS (colores, radios, tipograf�
 | Fuente    | Geist vía `@fontsource/geist-sans` (OFL). El prototipo la declara pero nunca la carga                                                                          |
 | Estado    | `nanostores` 1.5.5 + `@nanostores/preact` 1.1.1. Sin Redux (descartado, ADR 0003)                                                                              |
 | CSS       | El del prototipo. Sin Tailwind ni librerías de componentes                                                                                                     |
+
+**Nota (limpieza post-implementación):** al portar los íconos del prototipo se copiaron directo como `<symbol>` SVG inline en `index.html` (mismo glifo visual, sin depender de componentes de una librería en tiempo de ejecución), y la fuente terminó siendo un *stack* de CSS con "Geist" como preferencia y una fuente del sistema como respaldo, sin cargar nunca el archivo real. `lucide-preact` y `@fontsource/geist-sans` quedaron instalados sin ningún `import` real en el código — se sacaron de `package.json` en una limpieza de dependencias sin usar.
 
 ### Componentes (prototipo → Preact)
 

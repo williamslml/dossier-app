@@ -175,9 +175,6 @@ importers:
 
   .:
     dependencies:
-      '@fontsource/geist-sans':
-        specifier: ^5.3.0
-        version: 5.3.0
       '@nanostores/preact':
         specifier: 1.1.1
         version: 1.1.1(nanostores@1.5.5)(preact@11.2.0)
@@ -196,9 +193,6 @@ importers:
       electron-updater:
         specifier: ^6.8.11
         version: 6.8.11(supports-color@7.2.0)
-      lucide-preact:
-        specifier: ^1.77.0
-        version: 1.77.0(preact@11.2.0)
       nanostores:
         specifier: 1.5.5
         version: 1.5.5
@@ -584,9 +578,6 @@ packages:
   '@eslint/plugin-kit@0.4.1':
     resolution: {integrity: sha512-43/qtrDUokr7LJqoF2c3+RInu/t4zfrpYdoSDfYyhg52rwLV6TnOvdG4fXm7IkSB3wErkcmJS9iEhjVtOSEjjA==}
     engines: {node: ^18.18.0 || ^20.9.0 || >=21.1.0}
-
-  '@fontsource/geist-sans@5.3.0':
-    resolution: {integrity: sha512-AmG7cE1AvE4NHROPaOl1sN+a02cB5xy6pA/ZV76HXqWTCsJTV2SCBc9DTFHfJqnVOODm7HhXIYtUIb75NP5QXQ==}
 
   '@humanfs/core@0.19.2':
     resolution: {integrity: sha512-UhXNm+CFMWcbChXywFwkmhqjs3PRCmcSa/hfBgLIb7oQ5HNb1wS0icWsGtSAUNgefHeI+eBrA8I1fxmbHsGdvA==}
@@ -2219,11 +2210,6 @@ packages:
     resolution: {integrity: sha512-Jo6dJ04CmSjuznwJSS3pUeWmd/H0ffTlkXXgwZi+eq1UCmqQwCh+eLsYOYCwY991i2Fah4h1BEMCx4qThGbsiA==}
     engines: {node: '>=10'}
 
-  lucide-preact@1.77.0:
-    resolution: {integrity: sha512-zvRN+4PjvDJztuytj2pxjBL4WYE8VELMPFCedBARVgOfzQct3iKbflxVu3LjxZmw52Ab7zHa4eUSvAfQBN7f5g==}
-    peerDependencies:
-      preact: ^10.27.2 || ^11.0.0-0
-
   magic-string@0.30.21:
     resolution: {integrity: sha512-vd2F4YUyEXKGcLHoq+TEyCjxueSeHnFxyyjNp80yg0XV4vUhnDer/lvvlqM/arB5bXQN5K2/3oinyCRyx8T2CQ==}
 
@@ -3347,8 +3333,6 @@ snapshots:
     dependencies:
       '@eslint/core': 0.17.0
       levn: 0.4.1
-
-  '@fontsource/geist-sans@5.3.0': {}
 
   '@humanfs/core@0.19.2':
     dependencies:
@@ -4979,10 +4963,6 @@ snapshots:
   lru-cache@6.0.0:
     dependencies:
       yallist: 4.0.0
-
-  lucide-preact@1.77.0(preact@11.2.0):
-    dependencies:
-      preact: 11.2.0
 
   magic-string@0.30.21:
     dependencies:
