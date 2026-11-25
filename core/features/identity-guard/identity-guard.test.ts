@@ -251,6 +251,23 @@ describe('diffNewConflictFiles (notificar conflicto de identidad sin abrir la ve
     // función no necesita saber nada de "resuelto", solo compara dos listas.
     expect(diffNewConflictFiles(['a.json', 'b.json'], ['a.json'])).toEqual([])
   })
+
+  it('la secuencia completa: aparece, se resuelve, y vuelve a aparecer — cuenta como nuevo las dos veces', () => {
+    // Simula lo que haría el llamador real (main/index.ts): mantiene su
+    // propio "conocidos" actualizado con el resultado de cada chequeo.
+    let known: string[] = []
+
+    const firstCheck = diffNewConflictFiles(known, ['a.json'])
+    expect(firstCheck).toEqual(['a.json']) // conflicto nuevo: se notifica
+    known = ['a.json']
+
+    const afterResolved = diffNewConflictFiles(known, [])
+    expect(afterResolved).toEqual([]) // se borró el archivo: nada nuevo
+    known = []
+
+    const reappeared = diffNewConflictFiles(known, ['a.json'])
+    expect(reappeared).toEqual(['a.json']) // mismo nombre, conflicto nuevo de verdad: se notifica de nuevo
+  })
 })
 
 // Hallazgo de revisión: no había ningún test que probara buildHookScript con

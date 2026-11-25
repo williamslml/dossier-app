@@ -531,7 +531,6 @@ ipcMain.handle(IPC.resolveIdentityConflict, async (_event, payload: unknown) => 
  * confiable — esto es un aviso adicional, nunca el único.
  */
 const conflictsDir = getConflictsDir(dataDir)
-mkdirSync(conflictsDir, { recursive: true })
 
 function listConflictFiles(): string[] {
   try {
@@ -541,30 +540,56 @@ function listConflictFiles(): string[] {
   }
 }
 
-// No avisa de conflictos que ya existían antes de que arrancara la app —
-// esos ya se ven en la tarjeta de la ventana la primera vez que se abra,
-// sin necesidad de un aviso adicional encima.
-let knownConflictFiles = listConflictFiles()
+// Hallazgo de revisión: `mkdirSync`/`watch` fuera de un try-catch, y el
+// `FSWatcher` sin un `.on('error', ...)`, pueden tumbar todo el proceso de
+// `main` (un `EventEmitter` que emite 'error' sin ningún listener lanza esa
+// excepción) — justo lo que esto tiene que evitar por ser "defensivo, no
+// garantizado". Si falla cualquier cosa acá, se loguea y la app sigue
+// funcionando igual, solo sin este aviso adicional.
+try {
+  mkdirSync(conflictsDir, { recursive: true })
 
-watch(conflictsDir, { persistent: true }, () => {
-  const current = listConflictFiles()
-  const newFiles = diffNewConflictFiles(knownConflictFiles, current)
-  knownConflictFiles = current
+  // No avisa de conflictos que ya existían antes de que arrancara la app —
+  // esos ya se ven en la tarjeta de la ventana la primera vez que se abra,
+  // sin necesidad de un aviso adicional encima.
+  let knownConflictFiles = listConflictFiles()
 
-  for (const name of newFiles) {
-    try {
-      const record = JSON.parse(readFileSync(join(conflictsDir, name), 'utf8')) as ConflictRecord
-      log.info('conflicto de identidad detectado', record.repoPath)
-      notify({
-        title: brand.displayName,
-        body: `"${basename(record.repoPath)}" se commiteó con una identidad distinta a la fijada. Abrí Dossier para resolverlo.`,
-        important: true,
-      })
-    } catch (err) {
-      log.error('no se pudo leer un conflicto de identidad nuevo', err)
+  const watcher = watch(conflictsDir, { persistent: true }, () => {
+    const current = listConflictFiles()
+    const newFiles = diffNewConflictFiles(knownConflictFiles, current)
+    // Hallazgo de revisión: el hook no escribe el JSON de forma atómica —
+    // un evento puede llegar con el archivo todavía a medio escribir. Si
+    // ese nombre se marcara "ya conocido" igual, la notificación real se
+    // perdería para siempre (el próximo evento, con el archivo ya
+    // completo, ya no lo vería como nuevo). Solo pasan a "conocidos" los
+    // que se pudieron leer y parsear bien; los que fallan quedan afuera
+    // para reintentarse en el próximo evento.
+    const failedNames = new Set<string>()
+
+    for (const name of newFiles) {
+      try {
+        const record = JSON.parse(readFileSync(join(conflictsDir, name), 'utf8')) as ConflictRecord
+        log.info('conflicto de identidad detectado', record.repoPath)
+        notify({
+          title: 'Conflicto de identidad',
+          body: `"${basename(record.repoPath)}" se commiteó con una identidad distinta a la fijada. Abrí Dossier para resolverlo.`,
+          important: true,
+        })
+      } catch (err) {
+        log.error('no se pudo leer un conflicto de identidad nuevo, se reintentará', err)
+        failedNames.add(name)
+      }
     }
-  }
-})
+
+    knownConflictFiles = current.filter((name) => !failedNames.has(name))
+  })
+
+  watcher.on('error', (err) => {
+    log.error('el vigilante de conflictos de identidad falló', err)
+  })
+} catch (err) {
+  log.error('no se pudo activar la notificación de conflictos de identidad', err)
+}
 
 ipcMain.handle(IPC.listOrphanedCredentials, async () => {
   // S9.1: si GCM no puede listar GitHub por algún motivo (versión vieja,
