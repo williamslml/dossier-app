@@ -28,6 +28,6 @@
 
 ## 6. Cierre del change
 
-- [ ] Revisión en sesión separada (señal de alto riesgo)
-- [ ] Merge con `finishing-a-development-branch`
-- [ ] Mover la spec a `../archivados/`
+- [x] Revisión en sesión separada (señal de alto riesgo) — sin hallazgos bloqueantes. Confirmó punto por punto: el token nunca llega al renderer, `CredEnumerate` nunca marshalea `CredentialBlob`, la identidad ofrecida siempre pasa por `linkGitlab` (nunca la etiqueta de GCM), un candidato roto (`fill` o `linkGitlab` fallan) nunca tumba a los demás, la deduplicación por username real funciona, el guard de "último dominio gana" cubre también el chequeo nuevo de GCM, y `importGcmCachedAccount` vuelve a verificar del lado de `main`. Dos observaciones no bloqueantes: (1) `listGcmGitCredentials` no tenía timeout en el `spawn` de PowerShell, a diferencia de `runGitCredential` — corregido, mismo patrón de `settled`/`clearTimeout`/`child.kill()`; (2) con varios candidatos de GCM, cada blur del campo dominio dispara una verificación real contra la API por candidato — mismo patrón ya establecido por `glab` CLI, no es un riesgo nuevo, se deja como está
+- [x] Merge con `finishing-a-development-branch` — mergeado localmente a `main` (sin conflictos), `pnpm typecheck && pnpm lint && pnpm test` en verde sobre el resultado, rama `feat/detectar-credencial-gcm` borrada
+- [x] Mover la spec a `../archivados/`

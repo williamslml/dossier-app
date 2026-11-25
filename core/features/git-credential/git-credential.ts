@@ -298,10 +298,14 @@ export function parseGcmGitCredentialsOutput(stdout: string): CachedGcmCredentia
   return result
 }
 
+const LIST_GIT_CREDENTIALS_TIMEOUT_MS = 5_000
+
 /** Nunca lanza: PowerShell ausente (no debería pasar en Windows real),
-    `CredEnumerate` fallando, o cualquier salida irreconocible dan `[]` —
-    "no se encontró nada para ofrecer", nunca un error que bloquee vincular
-    una cuenta por el camino normal. */
+    `CredEnumerate` fallando, cualquier salida irreconocible, o que el
+    proceso no termine a tiempo (docs/adr/0006-seguridad.md: ninguna
+    llamada debe quedar colgada, mismo criterio que `runGitCredential`) dan
+    `[]` — "no se encontró nada para ofrecer", nunca un error que bloquee
+    vincular una cuenta por el camino normal. */
 export function listGcmGitCredentials(): Promise<CachedGcmCredential[]> {
   return new Promise((resolve) => {
     const child = spawn(
@@ -310,11 +314,30 @@ export function listGcmGitCredentials(): Promise<CachedGcmCredential[]> {
       { stdio: ['ignore', 'pipe', 'pipe'] },
     )
     let stdout = ''
+    let settled = false
+
+    const timer = setTimeout(() => {
+      if (settled) return
+      settled = true
+      child.kill()
+      resolve([])
+    }, LIST_GIT_CREDENTIALS_TIMEOUT_MS)
+
     child.stdout.on('data', (chunk: Buffer) => {
       stdout += chunk.toString('utf8')
     })
-    child.on('error', () => resolve([]))
-    child.on('close', () => resolve(parseGcmGitCredentialsOutput(stdout)))
+    child.on('error', () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve([])
+    })
+    child.on('close', () => {
+      if (settled) return
+      settled = true
+      clearTimeout(timer)
+      resolve(parseGcmGitCredentialsOutput(stdout))
+    })
   })
 }
 
